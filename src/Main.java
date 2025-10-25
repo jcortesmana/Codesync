@@ -5,11 +5,11 @@ import models.*;
 import exceptions.*;
 public class Main {
     public static void main(String[] args) {
-        // Crear tienda y controlador (interfaz consola)
+  
         Tienda tienda = new Tienda();
         ControladorTienda controlador = new ControladorTienda(tienda);
 
-        // Poblamos con algunos datos de ejemplo (manejo de excepciones)
+ 
         try {
             tienda.agregarCliente(new ClienteEstandar("Juan Pérez","Calle Mayor 123, Madrid","12345678A","juanperez@email.com"));
             tienda.agregarCliente(new ClientePremium("María López","Avenida Central 45, Barcelona","87654321B","marialopez@email.com"));
@@ -24,7 +24,7 @@ public class Main {
             System.out.println("Error al añadir artículo de ejemplo: " + e.getMessage());
         }
 
-        // Uso de Gestor<T> (ejemplo genérico)
+
         Gestor<Cliente> gestorClientes = new Gestor<>();
         gestorClientes.agregar(tienda.buscarCliente("juanperez@email.com"));
         gestorClientes.agregar(tienda.buscarCliente("marialopez@email.com"));
@@ -32,7 +32,7 @@ public class Main {
         System.out.println("=== Lista de Clientes desde Gestor ===");
         gestorClientes.mostrarTodos();
 
-        // Crear pedidos de ejemplo
+
         try {
             Pedido p1 = new Pedido(1, tienda.buscarCliente("juanperez@email.com"),
                     tienda.buscarArticulo("A01"), 2, LocalDateTime.now());
@@ -48,7 +48,7 @@ public class Main {
         System.out.println("\n=== Pedidos en la tienda ===");
         tienda.listarPedidosPendientes(null);
 
-        // Iniciar el controlador (menú interactivo)
+
         controlador.iniciar();
     }
 }
