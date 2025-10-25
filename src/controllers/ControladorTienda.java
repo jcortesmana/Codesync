@@ -1,6 +1,8 @@
+package controllers;
 import java.time.LocalDateTime;
+import models.*;
+import exceptions.*;
 import java.util.Scanner;
-
 public class ControladorTienda {
     private Tienda tienda;
     private Scanner sc;
@@ -71,6 +73,8 @@ public class ControladorTienda {
             Articulo a = new Articulo(codigo, desc, precio, envio, tiempo);
             tienda.agregarArticulo(a);
             System.out.println("Artículo agregado correctamente.");
+        } catch (ArticuloDuplicadoException e) {
+            System.out.println("⚠️ Error: " + e.getMessage());
         } catch (NumberFormatException e) {
             System.out.println("Datos inválidos, no se pudo agregar el artículo.");
         }
@@ -117,6 +121,8 @@ public class ControladorTienda {
             }
             tienda.agregarCliente(c);
             System.out.println("Cliente agregado correctamente.");
+        } catch (ClienteDuplicadoException e) {
+            System.out.println("⚠️ Error: " + e.getMessage());
         } catch (NumberFormatException e) {
             System.out.println("Tipo de cliente inválido.");
         }
@@ -177,7 +183,9 @@ public class ControladorTienda {
             System.out.print("Número de pedido a eliminar: ");
             int num = Integer.parseInt(sc.nextLine());
             tienda.eliminarPedido(num);
-            System.out.println("Pedido eliminado si era cancelable.");
+            System.out.println("Solicitud de eliminación procesada.");
+        } catch (PedidoNoCancelableException e) {
+            System.out.println("⚠️ " + e.getMessage());
         } catch (NumberFormatException e) {
             System.out.println("Número de pedido inválido.");
         }

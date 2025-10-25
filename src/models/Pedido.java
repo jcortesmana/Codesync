@@ -1,5 +1,5 @@
+package models;
 import java.time.LocalDateTime;
-
 public class Pedido {
     private int numeroPedido;
     private Cliente cliente;
@@ -40,8 +40,8 @@ public class Pedido {
     public String toString() {
         return "Pedido{" +
                 "numeroPedido=" + numeroPedido +
-                ", cliente=" + cliente.getEmail() +
-                ", articulo=" + articulo.getCodigo() +
+                ", cliente=" + (cliente != null ? cliente.getEmail() : "null") +
+                ", articulo=" + (articulo != null ? articulo.getCodigo() : "null") +
                 ", cantidad=" + cantidad +
                 ", fechaHora=" + fechaHora +
                 ", enviado=" + enviado +

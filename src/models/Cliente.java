@@ -1,4 +1,4 @@
-
+package models;
 public abstract class Cliente {
     private String nombre;
     private String domicilio;
@@ -33,5 +33,19 @@ public abstract class Cliente {
                 ", nif='" + nif + '\'' +
                 ", email='" + email + '\'' +
                 '}';
+    }
+
+    // Implementamos equals y hashCode basados en email (identidad única del cliente)
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Cliente)) return false;
+        Cliente cliente = (Cliente) o;
+        return email != null && email.equalsIgnoreCase(cliente.email);
+    }
+
+    @Override
+    public int hashCode() {
+        return email == null ? 0 : email.toLowerCase().hashCode();
     }
 }

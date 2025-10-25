@@ -1,3 +1,4 @@
+package models;
 public class Articulo {
     private String codigo;
     private String descripcion;
@@ -29,4 +30,6 @@ public class Articulo {
                 ", tiempoPreparacion=" + tiempoPreparacion +
                 '}';
     }
+
+
 }

@@ -1,6 +1,6 @@
+package models;
 import java.util.ArrayList;
 import java.util.List;
-
 // Clase genérica funcional para manejar listas de cualquier tipo de objeto
 public class Gestor<T> {
     private List<T> elementos;
