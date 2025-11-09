@@ -35,7 +35,7 @@ public abstract class Cliente {
                 '}';
     }
 
-    // Implementamos equals y hashCode basados en email (identidad única del cliente)
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

@@ -75,3 +75,4 @@ public class TiendaTest {
         assertTrue(ex.getMessage().contains("ya existe"));
     }
 }
+    
