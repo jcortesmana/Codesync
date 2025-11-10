@@ -1,5 +1,7 @@
 package dao;
 
+import utils.ConexionBD;
+
 import java.sql.Connection;
 
 public class DAOFactory {
@@ -7,7 +9,7 @@ public class DAOFactory {
 
     static {
         try {
-            conexion = DBConnection.getConnection();
+            conexion = ConexionBD.getConnection();
         } catch (Exception e) {
             e.printStackTrace();
         }

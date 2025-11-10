@@ -6,7 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class UsuarioDAOImpl implements UsuarioDAO {
-    private Connection conexion;
+
+    private final Connection conexion;
 
     public UsuarioDAOImpl(Connection conexion) {
         this.conexion = conexion;
@@ -58,8 +59,8 @@ public class UsuarioDAOImpl implements UsuarioDAO {
                         rs.getString("password")
                 );
             }
-            return null;
         }
+        return null;
     }
 
     @Override
