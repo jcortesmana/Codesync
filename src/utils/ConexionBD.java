@@ -9,7 +9,6 @@ public class ConexionBD {
     private static final String USER = "codesync_user";
     private static final String PASSWORD = "1234";
 
-
     private static Connection conn = null;
 
     private ConexionBD() {}

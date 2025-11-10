@@ -6,44 +6,42 @@ import models.Cliente;
 import models.ClienteEstandar;
 import models.ClientePremium;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public class TestClienteDAO {
     public static void main(String[] args) {
         try {
-            ClienteDAO clienteDAO = DAOFactory.getClienteDAO();
+            ClienteDAO dao = DAOFactory.getClienteDAO();
 
-            System.out.println("=== 🔹 TEST ClienteDAO ===");
+            // Insertar cliente estándar (usando SP)
+            Cliente c1 = new ClienteEstandar("Juan Perez", "C/ Mayor 1", "12345678A", "juan@ej.com");
+            int id1 = dao.insertarConSP(c1, BigDecimal.ZERO, BigDecimal.ZERO);
+            System.out.println("Insertado cliente ESTANDAR id=" + id1);
 
-            // Insertar clientes
-            Cliente c1 = new ClienteEstandar("Juan Pérez", "Calle Mayor 123", "12345678A", "juan@email.com");
-            Cliente c2 = new ClientePremium("María López", "Av. Central 45", "87654321B", "maria@email.com");
+            // Insertar cliente premium (SP + premium)
+            ClientePremium cp = new ClientePremium("Maria Premium", "Av. Central 5", "87654321B", "maria@ej.com");
+            int id2 = dao.insertarConSP(cp, new BigDecimal("30.00"), new BigDecimal("0.20"));
+            System.out.println("Insertado cliente PREMIUM id=" + id2);
 
-            clienteDAO.insertar(c1);
-            clienteDAO.insertar(c2);
-            System.out.println("✅ Clientes insertados.");
+            // Listar
+            List<Cliente> lista = dao.listarTodos();
+            lista.forEach(System.out::println);
 
-            // Listar todos
-            List<Cliente> clientes = clienteDAO.listarTodos();
-            System.out.println("\n📋 Clientes en BD:");
-            clientes.forEach(System.out::println);
+            // Buscar
+            Cliente encontrado = dao.buscarPorEmail("juan@ej.com");
+            System.out.println("Encontrado: " + encontrado);
 
-            // Buscar cliente por email
-            Cliente encontrado = clienteDAO.buscarPorEmail("juan@email.com");
+            // Actualizar
             if (encontrado != null) {
-                System.out.println("\n🔍 Cliente encontrado: " + encontrado);
+                encontrado.setDomicilio("C/ Nueva 99");
+                dao.actualizar(encontrado);
+                System.out.println("Actualizado");
             }
 
-            // Actualizar cliente
-            if (encontrado != null) {
-                encontrado.setDomicilio("Calle Nueva 99");
-                clienteDAO.actualizar(encontrado);
-                System.out.println("\n✏️ Cliente actualizado.");
-            }
-
-            // Eliminar cliente
-            clienteDAO.eliminar("maria@email.com");
-            System.out.println("\n🗑️ Cliente eliminado.");
+            // Eliminar (ejemplo)
+            // dao.eliminar(id1);
+            // System.out.println("Eliminado id=" + id1);
 
         } catch (Exception e) {
             e.printStackTrace();

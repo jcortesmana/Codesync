@@ -2,47 +2,37 @@ package views;
 
 import factory.DAOFactory;
 import dao.PedidoDAO;
+import dao.ClienteDAO;
 import models.*;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 public class TestPedidoDAO {
     public static void main(String[] args) {
         try {
             PedidoDAO pedidoDAO = DAOFactory.getPedidoDAO();
+            ClienteDAO clienteDAO = DAOFactory.getClienteDAO();
 
-            System.out.println("=== 🔹 TEST PedidoDAO ===");
+            // Asegúrate de tener un cliente con id (usa TestClienteDAO)
+            // Ejemplo: buscar cliente por email para obtener id
+            Cliente cliente = clienteDAO.buscarPorEmail("juan@ej.com");
+            if (cliente == null) {
+                System.err.println("Crea primero un cliente con TestClienteDAO");
+                return;
+            }
 
-            // Crear cliente y artículo de prueba
-            Cliente cliente = new ClienteEstandar("Prueba", "Calle Falsa 123", "11111111A", "cliente@demo.com");
-            Articulo articulo = new Articulo("A01", "Mancuerna 5kg", 15.0, 3.0, 2);
+            Pedido p = new Pedido(LocalDate.now(), 2, false, cliente);
 
-            // Crear pedido
-            Pedido pedido = new Pedido(1, cliente, articulo, 2, LocalDateTime.now());
-            pedidoDAO.insertar(pedido);
-            System.out.println("✅ Pedido insertado con número: " + pedido.getNumeroPedido());
+            List<PedidoLinea> lineas = new ArrayList<>();
+            lineas.add(new PedidoLinea("A01", 1));
+            lineas.add(new PedidoLinea("A02", 1));
 
-            // Listar todos los pedidos
+            int numero = pedidoDAO.insertarPedidoConLineas(p, lineas);
+            System.out.println("Pedido insertado con numero=" + numero);
+
             List<Pedido> pedidos = pedidoDAO.listarTodos();
-            System.out.println("\n📋 Pedidos en BD:");
             pedidos.forEach(System.out::println);
-
-            // Buscar pedido por número
-            Pedido encontrado = pedidoDAO.buscarPorNumero(1);
-            if (encontrado != null) {
-                System.out.println("\n🔍 Pedido encontrado: " + encontrado);
-            }
-
-            // Actualizar cantidad
-            if (encontrado != null) {
-                encontrado = new Pedido(1, cliente, articulo, 5, LocalDateTime.now());
-                pedidoDAO.actualizar(encontrado);
-                System.out.println("\n✏️ Pedido actualizado.");
-            }
-
-            // Eliminar pedido
-            pedidoDAO.eliminar(1);
-            System.out.println("\n🗑️ Pedido eliminado.");
 
         } catch (Exception e) {
             e.printStackTrace();
