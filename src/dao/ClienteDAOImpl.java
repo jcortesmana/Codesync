@@ -8,8 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ClienteDAOImpl implements ClienteDAO {
-
-    private final Connection conexion;
+    private Connection conexion;
 
     public ClienteDAOImpl(Connection conexion) {
         this.conexion = conexion;
@@ -17,7 +16,7 @@ public class ClienteDAOImpl implements ClienteDAO {
 
     @Override
     public void insertar(Cliente cliente) throws Exception {
-        String sql = "INSERT INTO clientes (nombre, domicilio, nif, email, tipo) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO clientes (nombre, direccion, nif, email, tipo) VALUES (?, ?, ?, ?, ?)";
         try (PreparedStatement ps = conexion.prepareStatement(sql)) {
             ps.setString(1, cliente.getNombre());
             ps.setString(2, cliente.getDomicilio());
@@ -30,7 +29,7 @@ public class ClienteDAOImpl implements ClienteDAO {
 
     @Override
     public void actualizar(Cliente cliente) throws Exception {
-        String sql = "UPDATE clientes SET nombre=?, domicilio=?, nif=?, tipo=? WHERE email=?";
+        String sql = "UPDATE clientes SET nombre=?, direccion=?, nif=?, tipo=? WHERE email=?";
         try (PreparedStatement ps = conexion.prepareStatement(sql)) {
             ps.setString(1, cliente.getNombre());
             ps.setString(2, cliente.getDomicilio());
@@ -61,21 +60,21 @@ public class ClienteDAOImpl implements ClienteDAO {
                 if ("premium".equalsIgnoreCase(tipo)) {
                     return new ClientePremium(
                             rs.getString("nombre"),
-                            rs.getString("domicilio"),
+                            rs.getString("direccion"),
                             rs.getString("nif"),
                             rs.getString("email")
                     );
                 } else {
                     return new ClienteEstandar(
                             rs.getString("nombre"),
-                            rs.getString("domicilio"),
+                            rs.getString("direccion"),
                             rs.getString("nif"),
                             rs.getString("email")
                     );
                 }
             }
+            return null;
         }
-        return null;
     }
 
     @Override
@@ -86,17 +85,22 @@ public class ClienteDAOImpl implements ClienteDAO {
              ResultSet rs = st.executeQuery(sql)) {
             while (rs.next()) {
                 String tipo = rs.getString("tipo");
-                Cliente c = ("premium".equalsIgnoreCase(tipo))
-                        ? new ClientePremium(
-                        rs.getString("nombre"),
-                        rs.getString("domicilio"),
-                        rs.getString("nif"),
-                        rs.getString("email"))
-                        : new ClienteEstandar(
-                        rs.getString("nombre"),
-                        rs.getString("domicilio"),
-                        rs.getString("nif"),
-                        rs.getString("email"));
+                Cliente c;
+                if ("premium".equalsIgnoreCase(tipo)) {
+                    c = new ClientePremium(
+                            rs.getString("nombre"),
+                            rs.getString("direccion"),
+                            rs.getString("nif"),
+                            rs.getString("email")
+                    );
+                } else {
+                    c = new ClienteEstandar(
+                            rs.getString("nombre"),
+                            rs.getString("direccion"),
+                            rs.getString("nif"),
+                            rs.getString("email")
+                    );
+                }
                 lista.add(c);
             }
         }
