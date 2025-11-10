@@ -1,9 +1,15 @@
 package controllers;
-import java.time.LocalDateTime;
+
 import models.*;
-import exceptions.*;
+import exceptions.ArticuloDuplicadoException;
+import exceptions.ClienteDuplicadoException;
+import exceptions.PedidoNoCancelableException;
+
+import java.time.LocalDate;
 import java.util.Scanner;
+
 public class ControladorTienda {
+
     private Tienda tienda;
     private Scanner sc;
 
@@ -22,11 +28,11 @@ public class ControladorTienda {
                     case 1 -> gestionarArticulos();
                     case 2 -> gestionarClientes();
                     case 3 -> gestionarPedidos();
-                    case 0 -> System.out.println("Saliendo de la aplicación...");
-                    default -> System.out.println("Opción inválida.");
+                    case 0 -> System.out.println("👋 Saliendo de la aplicación...");
+                    default -> System.out.println("⚠️ Opción inválida.");
                 }
             } catch (NumberFormatException e) {
-                System.out.println("Debe ingresar un número válido.");
+                System.out.println("⚠️ Debe ingresar un número válido.");
                 opcion = -1;
             }
         } while (opcion != 0);
@@ -53,7 +59,7 @@ public class ControladorTienda {
         switch (op) {
             case "1" -> agregarArticulo();
             case "2" -> tienda.mostrarArticulos();
-            default -> System.out.println("Opción inválida.");
+            default -> System.out.println("⚠️ Opción inválida.");
         }
     }
 
@@ -71,12 +77,18 @@ public class ControladorTienda {
             int tiempo = Integer.parseInt(sc.nextLine());
 
             Articulo a = new Articulo(codigo, desc, precio, envio, tiempo);
-            tienda.agregarArticulo(a);
-            System.out.println("Artículo agregado correctamente.");
-        } catch (ArticuloDuplicadoException e) {
-            System.out.println("⚠️ Error: " + e.getMessage());
+
+            // ✅ Manejar excepción personalizada
+            try {
+                tienda.agregarArticulo(a);
+                System.out.println("✅ Artículo agregado correctamente.");
+            } catch (ArticuloDuplicadoException e) {
+                System.out.println("❌ Error: " + e.getMessage());
+
+            }
+
         } catch (NumberFormatException e) {
-            System.out.println("Datos inválidos, no se pudo agregar el artículo.");
+            System.out.println("❌ Datos inválidos, no se pudo agregar el artículo.");
         }
     }
 
@@ -96,7 +108,7 @@ public class ControladorTienda {
             case "2" -> tienda.mostrarClientes();
             case "3" -> tienda.mostrarClientesEstandar();
             case "4" -> tienda.mostrarClientesPremium();
-            default -> System.out.println("Opción inválida.");
+            default -> System.out.println("⚠️ Opción inválida.");
         }
     }
 
@@ -119,12 +131,18 @@ public class ControladorTienda {
             } else {
                 c = new ClientePremium(nombre, dom, nif, email);
             }
-            tienda.agregarCliente(c);
-            System.out.println("Cliente agregado correctamente.");
-        } catch (ClienteDuplicadoException e) {
-            System.out.println("⚠️ Error: " + e.getMessage());
+
+            // ✅ Manejar excepción personalizada de cliente duplicado
+            try {
+                tienda.agregarCliente(c);
+                System.out.println("✅ Cliente agregado correctamente.");
+            } catch (ClienteDuplicadoException e) {
+                System.out.println("❌ Error: " + e.getMessage());
+
+            }
+
         } catch (NumberFormatException e) {
-            System.out.println("Tipo de cliente inválido.");
+            System.out.println("❌ Tipo de cliente inválido.");
         }
     }
 
@@ -144,37 +162,45 @@ public class ControladorTienda {
             case "2" -> eliminarPedido();
             case "3" -> mostrarPedidosPendientes();
             case "4" -> mostrarPedidosEnviados();
-            default -> System.out.println("Opción inválida.");
+            default -> System.out.println("⚠️ Opción inválida.");
         }
     }
 
     private void agregarPedido() {
         try {
-            System.out.print("Número de pedido: ");
-            int num = Integer.parseInt(sc.nextLine());
             System.out.print("Email del cliente: ");
             String email = sc.nextLine();
             Cliente c = tienda.buscarCliente(email);
             if (c == null) {
-                System.out.println("Cliente no existe. Debe registrarlo primero:");
+                System.out.println("⚠️ Cliente no existe. Debe registrarlo primero:");
                 agregarCliente();
                 c = tienda.buscarCliente(email);
+                if (c == null) {
+                    System.out.println("❌ No se pudo obtener cliente. Abortando creación de pedido.");
+                    return;
+                }
             }
+
             System.out.print("Código del artículo: ");
             String cod = sc.nextLine();
             Articulo a = tienda.buscarArticulo(cod);
             if (a == null) {
-                System.out.println("Artículo no encontrado. No se puede crear el pedido.");
+                System.out.println("❌ Artículo no encontrado. No se puede crear el pedido.");
                 return;
             }
+
             System.out.print("Cantidad: ");
             int cantidad = Integer.parseInt(sc.nextLine());
 
-            Pedido p = new Pedido(num, c, a, cantidad, LocalDateTime.now());
+            // ✅ Crear pedido con la fecha actual
+            Pedido p = new Pedido(LocalDate.now(), cantidad, false, c);
             tienda.agregarPedido(p);
-            System.out.println("Pedido agregado correctamente. Total: " + p.calcularTotal());
+            System.out.println("✅ Pedido agregado correctamente.");
+
         } catch (NumberFormatException e) {
-            System.out.println("Datos inválidos para crear el pedido.");
+            System.out.println("❌ Datos inválidos para crear el pedido.");
+        } catch (Exception e) {
+            System.out.println("❌ Error al crear pedido: " + e.getMessage());
         }
     }
 
@@ -182,24 +208,26 @@ public class ControladorTienda {
         try {
             System.out.print("Número de pedido a eliminar: ");
             int num = Integer.parseInt(sc.nextLine());
-            tienda.eliminarPedido(num);
-            System.out.println("Solicitud de eliminación procesada.");
-        } catch (PedidoNoCancelableException e) {
-            System.out.println("⚠️ " + e.getMessage());
+            try {
+                tienda.eliminarPedido(num); // puede lanzar PedidoNoCancelableException
+                System.out.println("🗑 Pedido eliminado si era cancelable.");
+            } catch (PedidoNoCancelableException e) {
+                System.out.println("⚠️ No se pudo eliminar el pedido: " + e.getMessage());
+            }
         } catch (NumberFormatException e) {
-            System.out.println("Número de pedido inválido.");
+            System.out.println("❌ Número de pedido inválido.");
         }
     }
 
     private void mostrarPedidosPendientes() {
-        System.out.print("Filtrar por cliente (enter = todos): ");
+        System.out.print("Filtrar por cliente (Enter = todos): ");
         String email = sc.nextLine();
         if (email.isBlank()) email = null;
         tienda.listarPedidosPendientes(email);
     }
 
     private void mostrarPedidosEnviados() {
-        System.out.print("Filtrar por cliente (enter = todos): ");
+        System.out.print("Filtrar por cliente (Enter = todos): ");
         String email = sc.nextLine();
         if (email.isBlank()) email = null;
         tienda.listarPedidosEnviados(email);

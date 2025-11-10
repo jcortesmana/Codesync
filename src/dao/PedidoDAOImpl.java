@@ -10,11 +10,6 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * PedidoDAOImpl adaptado para que la columna 'fecha' en BD sea de tipo DATE.
- * Usa pedido.getFechaHora().toLocalDate() para persistir solo la parte de fecha.
- * Todas las referencias a getNumero() han sido reemplazadas por getNumeroPedido().
- */
 public class PedidoDAOImpl implements PedidoDAO {
 
     private final Connection conexion;
@@ -23,10 +18,6 @@ public class PedidoDAOImpl implements PedidoDAO {
         this.conexion = conexion;
     }
 
-    /**
-     * Inserta un pedido y sus líneas (pedido_articulo) usando procedimientos almacenados.
-     * Retorna el número de pedido generado (AUTO_INCREMENT).
-     */
     @Override
     public int insertarPedidoConLineas(Pedido pedido, List<PedidoLinea> lineas) throws Exception {
         String callInsertPedido = "{CALL sp_insert_pedido(?, ?, ?, ?, ?)}"; // OUT p_numero es param 5
@@ -38,11 +29,9 @@ public class PedidoDAOImpl implements PedidoDAO {
             conexion.setAutoCommit(false);
 
             csPedido = conexion.prepareCall(callInsertPedido);
-            // La BD tiene columna 'fecha' tipo DATE -> usamos sólo la parte LocalDate
-            csPedido.setDate(1, java.sql.Date.valueOf(pedido.getFechaHora().toLocalDate()));
+            csPedido.setDate(1, java.sql.Date.valueOf(pedido.getFecha())); // fecha DATE
             csPedido.setInt(2, pedido.getCantidad());
             csPedido.setBoolean(3, pedido.isEnviado());
-            // Cliente debe tener id establecido (id_cliente en BD)
             csPedido.setInt(4, pedido.getCliente().getId());
             csPedido.registerOutParameter(5, java.sql.Types.INTEGER);
 
@@ -69,9 +58,6 @@ public class PedidoDAOImpl implements PedidoDAO {
         }
     }
 
-    /**
-     * Buscar pedido por número. Recupera datos del pedido y del cliente asociado.
-     */
     @Override
     public Pedido buscarPorNumero(int numero) throws Exception {
         String sql = "SELECT p.numero, p.fecha, p.cantidad, p.enviado, p.id_cliente, " +
@@ -81,31 +67,20 @@ public class PedidoDAOImpl implements PedidoDAO {
             ps.setInt(1, numero);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    // Construimos cliente (simple). Si necesitas datos premium, ajustar.
-                    Cliente cliente;
-                    String tipo = rs.getString("tipo_cliente");
-                    if ("PREMIUM".equalsIgnoreCase(tipo)) {
-                        // Si tu app necesita atributos premium completos, deberías leer la tabla cliente_premium
-                        cliente = new ClienteEstandar(rs.getString("nombre"),
-                                rs.getString("domicilio"),
-                                rs.getString("nif"),
-                                rs.getString("email"));
-                    } else {
-                        cliente = new ClienteEstandar(rs.getString("nombre"),
-                                rs.getString("domicilio"),
-                                rs.getString("nif"),
-                                rs.getString("email"));
-                    }
+                    Cliente cliente = new ClienteEstandar(
+                            rs.getString("nombre"),
+                            rs.getString("domicilio"),
+                            rs.getString("nif"),
+                            rs.getString("email")
+                    );
 
                     Pedido pedido = new Pedido(
                             rs.getInt("numero"),
-                            cliente,
-                            // Creamos un Articulo placeholder con solo el código (detalles pueden venir de articulo DAO)
-                            new Articulo("", "", 0.0, 0.0, 0),
+                            rs.getDate("fecha").toLocalDate(),
                             rs.getInt("cantidad"),
-                            rs.getDate("fecha").toLocalDate().atStartOfDay()
+                            rs.getBoolean("enviado"),
+                            cliente
                     );
-                    pedido.setEnviado(rs.getBoolean("enviado"));
                     return pedido;
                 }
             }
@@ -113,9 +88,6 @@ public class PedidoDAOImpl implements PedidoDAO {
         return null;
     }
 
-    /**
-     * Lista todos los pedidos (con cliente básico).
-     */
     @Override
     public List<Pedido> listarTodos() throws Exception {
         List<Pedido> lista = new ArrayList<>();
@@ -133,33 +105,28 @@ public class PedidoDAOImpl implements PedidoDAO {
 
                 Pedido pedido = new Pedido(
                         rs.getInt("numero"),
-                        cliente,
-                        new Articulo("", "", 0.0, 0.0, 0),
+                        rs.getDate("fecha").toLocalDate(),
                         rs.getInt("cantidad"),
-                        rs.getDate("fecha").toLocalDate().atStartOfDay()
+                        rs.getBoolean("enviado"),
+                        cliente
                 );
-                pedido.setEnviado(rs.getBoolean("enviado"));
                 lista.add(pedido);
             }
         }
         return lista;
     }
 
-    /**
-     * Actualiza fila pedido (columna fecha es DATE, por eso usamos toLocalDate()).
-     */
     @Override
     public void actualizar(Pedido pedido) throws Exception {
         String sql = "UPDATE pedido SET fecha=?, cantidad=?, enviado=?, id_cliente=? WHERE numero=?";
         try {
             conexion.setAutoCommit(false);
             try (PreparedStatement ps = conexion.prepareStatement(sql)) {
-                ps.setDate(1, java.sql.Date.valueOf(pedido.getFechaHora().toLocalDate()));
+                ps.setDate(1, java.sql.Date.valueOf(pedido.getFecha()));
                 ps.setInt(2, pedido.getCantidad());
                 ps.setBoolean(3, pedido.isEnviado());
                 ps.setInt(4, pedido.getCliente().getId());
-                // Corrección: usar getNumeroPedido()
-                ps.setInt(5, pedido.getNumeroPedido());
+                ps.setInt(5, pedido.getNumero());
                 ps.executeUpdate();
             }
             conexion.commit();
@@ -171,9 +138,6 @@ public class PedidoDAOImpl implements PedidoDAO {
         }
     }
 
-    /**
-     * Elimina pedido por número.
-     */
     @Override
     public void eliminar(int numero) throws Exception {
         String sql = "DELETE FROM pedido WHERE numero=?";

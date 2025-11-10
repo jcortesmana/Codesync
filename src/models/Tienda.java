@@ -71,21 +71,20 @@ public class Tienda {
     }
 
     public void eliminarPedido(int numeroPedido) throws PedidoNoCancelableException {
-        Optional<Pedido> opt = pedidos.stream()
-                .filter(p -> p.getNumeroPedido() == numeroPedido)
-                .findFirst();
-
-        if (opt.isEmpty()) {
-            // No existe -> no hacemos nada (alternativa: lanzar excepción PedidoNoEncontrado)
-            return;
+        for (Pedido p : pedidos) {
+            if (p.getNumeroPedido() == numeroPedido) {  // ✅ ahora funcionará
+                if (p.esCancelable()) {                 // ✅ también funciona
+                    pedidos.remove(p);
+                    System.out.println("✅ Pedido eliminado correctamente.");
+                    return;
+                } else {
+                    throw new PedidoNoCancelableException(
+                            "El pedido " + numeroPedido + " no puede cancelarse (ya preparado/enviado o fuera de plazo)."
+                    );
+                }
+            }
         }
-
-        Pedido p = opt.get();
-        if (!p.esCancelable()) {
-            throw new PedidoNoCancelableException("El pedido " + numeroPedido + " no puede cancelarse (ya preparado/enviado o fuera de plazo).");
-        }
-
-        pedidos.remove(p);
+        System.out.println("⚠️ Pedido no encontrado.");
     }
 
     public void listarPedidosPendientes(String clienteEmail) {

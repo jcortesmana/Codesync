@@ -13,13 +13,21 @@ public class ConexionBD {
 
     private ConexionBD() {}
 
-    public static Connection getConnection() {
+    public static Connection getConnection() throws SQLException {
         try {
+            // Cargar driver explícitamente para diagnóstico
+            try {
+                Class.forName("com.mysql.cj.jdbc.Driver");
+            } catch (ClassNotFoundException e) {
+                System.err.println("Driver MySQL no encontrado en classpath: " + e.getMessage());
+            }
+
             if (conn == null || conn.isClosed()) {
                 conn = DriverManager.getConnection(URL, USER, PASSWORD);
             }
         } catch (SQLException e) {
             System.err.println("❌ Error de conexión: " + e.getMessage());
+            throw e;
         }
         return conn;
     }
