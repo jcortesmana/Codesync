@@ -1,7 +1,7 @@
-package dao;
+package factory;
 
+import dao.*;
 import utils.ConexionBD;
-
 import java.sql.Connection;
 
 public class DAOFactory {
