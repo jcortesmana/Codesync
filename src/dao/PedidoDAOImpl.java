@@ -19,35 +19,65 @@ public class PedidoDAOImpl implements PedidoDAO {
     @Override
     public void insertar(Pedido pedido) throws Exception {
         String sql = "INSERT INTO pedidos (numero_pedido, cliente_email, articulo_codigo, cantidad, fecha_hora) VALUES (?, ?, ?, ?, ?)";
-        try (PreparedStatement ps = conexion.prepareStatement(sql)) {
-            ps.setInt(1, pedido.getNumeroPedido());
-            ps.setString(2, pedido.getCliente().getEmail());
-            ps.setString(3, pedido.getArticulo().getCodigo());
-            ps.setInt(4, pedido.getCantidad());
-            ps.setTimestamp(5, Timestamp.valueOf(pedido.getFechaHora()));
-            ps.executeUpdate();
+        try {
+            conexion.setAutoCommit(false);
+            try (PreparedStatement ps = conexion.prepareStatement(sql)) {
+                ps.setInt(1, pedido.getNumeroPedido());
+                ps.setString(2, pedido.getCliente().getEmail());
+                ps.setString(3, pedido.getArticulo().getCodigo());
+                ps.setInt(4, pedido.getCantidad());
+                ps.setTimestamp(5, Timestamp.valueOf(pedido.getFechaHora()));
+                ps.executeUpdate();
+            }
+            conexion.commit();
+            System.out.println("✔️ Pedido insertado correctamente (N° " + pedido.getNumeroPedido() + ")");
+        } catch (SQLException e) {
+            conexion.rollback();
+            throw new SQLException("❌ Error al insertar pedido: " + e.getMessage());
+        } finally {
+            conexion.setAutoCommit(true);
         }
     }
 
     @Override
     public void actualizar(Pedido pedido) throws Exception {
         String sql = "UPDATE pedidos SET cliente_email=?, articulo_codigo=?, cantidad=?, fecha_hora=? WHERE numero_pedido=?";
-        try (PreparedStatement ps = conexion.prepareStatement(sql)) {
-            ps.setString(1, pedido.getCliente().getEmail());
-            ps.setString(2, pedido.getArticulo().getCodigo());
-            ps.setInt(3, pedido.getCantidad());
-            ps.setTimestamp(4, Timestamp.valueOf(pedido.getFechaHora()));
-            ps.setInt(5, pedido.getNumeroPedido());
-            ps.executeUpdate();
+        try {
+            conexion.setAutoCommit(false);
+            try (PreparedStatement ps = conexion.prepareStatement(sql)) {
+                ps.setString(1, pedido.getCliente().getEmail());
+                ps.setString(2, pedido.getArticulo().getCodigo());
+                ps.setInt(3, pedido.getCantidad());
+                ps.setTimestamp(4, Timestamp.valueOf(pedido.getFechaHora()));
+                ps.setInt(5, pedido.getNumeroPedido());
+                ps.executeUpdate();
+            }
+            conexion.commit();
+            System.out.println("✏️ Pedido actualizado correctamente.");
+        } catch (SQLException e) {
+            conexion.rollback();
+            throw new SQLException("❌ Error al actualizar pedido: " + e.getMessage());
+        } finally {
+            conexion.setAutoCommit(true);
         }
     }
 
     @Override
     public void eliminar(int numeroPedido) throws Exception {
         String sql = "DELETE FROM pedidos WHERE numero_pedido=?";
-        try (PreparedStatement ps = conexion.prepareStatement(sql)) {
-            ps.setInt(1, numeroPedido);
-            ps.executeUpdate();
+        try {
+            conexion.setAutoCommit(false);
+            try (PreparedStatement ps = conexion.prepareStatement(sql)) {
+                ps.setInt(1, numeroPedido);
+                ps.executeUpdate();
+            }
+            conexion.commit();
+            System.out.println("🗑️ Pedido eliminado (N° " + numeroPedido + ")");
+        } catch (SQLException e) {
+            conexion.rollback();
+            throw new SQLException("❌ Error al eliminar pedido: " + e.getMessage());
+        } finally {
+            conexion.setAutoCommit(true);
         }
     }
 
@@ -57,15 +87,9 @@ public class PedidoDAOImpl implements PedidoDAO {
         try (PreparedStatement ps = conexion.prepareStatement(sql)) {
             ps.setInt(1, numeroPedido);
             ResultSet rs = ps.executeQuery();
-
             if (rs.next()) {
-                // Creamos cliente genérico con datos mínimos (no podemos instanciar Cliente directamente)
                 Cliente cliente = new ClienteEstandar("Desconocido", "", "", rs.getString("cliente_email"));
-
-                // Creamos artículo básico con el código
                 Articulo articulo = new Articulo(rs.getString("articulo_codigo"), "", 0.0, 0.0, 0);
-
-                // Creamos y devolvemos el pedido
                 return new Pedido(
                         rs.getInt("numero_pedido"),
                         cliente,
@@ -84,14 +108,9 @@ public class PedidoDAOImpl implements PedidoDAO {
         String sql = "SELECT * FROM pedidos";
         try (Statement st = conexion.createStatement();
              ResultSet rs = st.executeQuery(sql)) {
-
             while (rs.next()) {
-                // Cliente temporal (estándar) con solo el email
                 Cliente cliente = new ClienteEstandar("Desconocido", "", "", rs.getString("cliente_email"));
-
-                // Artículo básico con solo el código
                 Articulo articulo = new Articulo(rs.getString("articulo_codigo"), "", 0.0, 0.0, 0);
-
                 Pedido pedido = new Pedido(
                         rs.getInt("numero_pedido"),
                         cliente,
@@ -99,7 +118,6 @@ public class PedidoDAOImpl implements PedidoDAO {
                         rs.getInt("cantidad"),
                         rs.getTimestamp("fecha_hora").toLocalDateTime()
                 );
-
                 lista.add(pedido);
             }
         }
