@@ -6,6 +6,8 @@ public class Usuario {
     private String email;
     private String password;
 
+    public Usuario() {}
+
     public Usuario(int id, String nombre, String email, String password) {
         this.id = id;
         this.nombre = nombre;
@@ -17,7 +19,7 @@ public class Usuario {
         this(0, nombre, email, password);
     }
 
-    // Getters y setters
+    // getters / setters
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
     public String getNombre() { return nombre; }
@@ -29,10 +31,6 @@ public class Usuario {
 
     @Override
     public String toString() {
-        return "Usuario{" +
-                "id=" + id +
-                ", nombre='" + nombre + '\'' +
-                ", email='" + email + '\'' +
-                '}';
+        return "Usuario{id=" + id + ", nombre='" + nombre + "', email='" + email + "'}";
     }
 }

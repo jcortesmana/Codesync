@@ -1,50 +1,42 @@
 package models;
-import java.time.LocalDateTime;
-public class Pedido {
-    private int numeroPedido;
-    private Cliente cliente;
-    private Articulo articulo;
-    private int cantidad;
-    private LocalDateTime fechaHora;
-    private boolean enviado;
 
-    public Pedido(int numeroPedido, Cliente cliente, Articulo articulo, int cantidad, LocalDateTime fechaHora) {
-        this.numeroPedido = numeroPedido;
-        this.cliente = cliente;
-        this.articulo = articulo;
+import java.time.LocalDate;
+
+public class Pedido {
+    private int numero;
+    private LocalDate fecha;
+    private int cantidad; // cantidad total (por simplicidad)
+    private boolean enviado;
+    private Cliente cliente;
+
+    public Pedido() {}
+
+    public Pedido(int numero, LocalDate fecha, int cantidad, boolean enviado, Cliente cliente) {
+        this.numero = numero;
+        this.fecha = fecha;
         this.cantidad = cantidad;
-        this.fechaHora = fechaHora;
-        this.enviado = false;
+        this.enviado = enviado;
+        this.cliente = cliente;
     }
 
-    public int getNumeroPedido() { return numeroPedido; }
-    public Cliente getCliente() { return cliente; }
-    public Articulo getArticulo() { return articulo; }
+    // Constructor usado en tests (sin numero auto)
+    public Pedido(LocalDate fecha, int cantidad, boolean enviado, Cliente cliente) {
+        this(0, fecha, cantidad, enviado, cliente);
+    }
+
+    public int getNumero() { return numero; }
+    public void setNumero(int numero) { this.numero = numero; }
+    public LocalDate getFecha() { return fecha; }
+    public void setFecha(LocalDate fecha) { this.fecha = fecha; }
     public int getCantidad() { return cantidad; }
-    public LocalDateTime getFechaHora() { return fechaHora; }
+    public void setCantidad(int cantidad) { this.cantidad = cantidad; }
     public boolean isEnviado() { return enviado; }
     public void setEnviado(boolean enviado) { this.enviado = enviado; }
-
-    public double calcularTotal() {
-        double subtotal = articulo.getPrecioVenta() * cantidad;
-        double envio = articulo.getGastosEnvio() * (1 - cliente.calcularDescuentoEnvio());
-        return subtotal + envio;
-    }
-
-    public boolean esCancelable() {
-        LocalDateTime limite = fechaHora.plusMinutes(articulo.getTiempoPreparacion());
-        return !enviado && LocalDateTime.now().isBefore(limite);
-    }
+    public Cliente getCliente() { return cliente; }
+    public void setCliente(Cliente cliente) { this.cliente = cliente; }
 
     @Override
     public String toString() {
-        return "Pedido{" +
-                "numeroPedido=" + numeroPedido +
-                ", cliente=" + (cliente != null ? cliente.getEmail() : "null") +
-                ", articulo=" + (articulo != null ? articulo.getCodigo() : "null") +
-                ", cantidad=" + cantidad +
-                ", fechaHora=" + fechaHora +
-                ", enviado=" + enviado +
-                '}';
+        return "Pedido{numero=" + numero + ", fecha=" + fecha + ", cantidad=" + cantidad + ", enviado=" + enviado + ", cliente=" + (cliente!=null?cliente.getEmail():"null") + "}";
     }
 }

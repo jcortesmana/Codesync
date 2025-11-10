@@ -1,7 +1,12 @@
 package models;
+
 public class ClienteEstandar extends Cliente {
+    public ClienteEstandar() { super(); }
     public ClienteEstandar(String nombre, String domicilio, String nif, String email) {
         super(nombre, domicilio, nif, email);
+    }
+    public ClienteEstandar(int id, String nombre, String domicilio, String nif, String email) {
+        super(id, nombre, domicilio, nif, email);
     }
 
     @Override
@@ -11,6 +16,6 @@ public class ClienteEstandar extends Cliente {
 
     @Override
     public String toString() {
-        return super.toString() + " [Tipo: Estándar]";
+        return super.toString() + " [Tipo: ESTANDAR]";
     }
 }
