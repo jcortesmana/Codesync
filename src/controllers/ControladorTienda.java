@@ -1,15 +1,51 @@
 package controllers;
+
 import java.time.LocalDateTime;
+import java.sql.Connection;
+import java.util.Scanner;
+
 import models.*;
 import exceptions.*;
-import java.util.Scanner;
+
+import dao.UsuarioDAO;
+import dao.Impl.UsuarioDAOImpl;
+import utils.ConexionBD;
+
 public class ControladorTienda {
+
     private Tienda tienda;
     private Scanner sc;
+
+    // 🔹 Añadimos conexión y DAO
+    private Connection conexion;
+    private UsuarioDAO usuarioDAO;
 
     public ControladorTienda(Tienda tienda) {
         this.tienda = tienda;
         sc = new Scanner(System.in);
+
+        // 🔹 Conexión a la base de datos
+        try {
+            conexion = ConexionBD.getConnection();
+            usuarioDAO = new UsuarioDAOImpl(conexion);
+            System.out.println("✅ Conectado a la base de datos correctamente.");
+
+            // 🔹 Cargar usuarios de la BD en la tienda
+            try {
+                usuarioDAO.listarTodos().forEach(u -> {
+                    Cliente cliente = new ClienteEstandar(u.getNombre(), "Desconocido", "N/A", u.getEmail());
+                    try {
+                        tienda.agregarCliente(cliente);
+                    } catch (ClienteDuplicadoException ignored) {}
+                });
+                System.out.println("✅ Clientes cargados desde BD al iniciar.");
+            } catch (Exception e) {
+                System.err.println("⚠️ No se pudieron cargar los clientes desde BD: " + e.getMessage());
+            }
+
+        } catch (Exception e) {
+            System.err.println("❌ Error al conectar a la base de datos: " + e.getMessage());
+        }
     }
 
     public void iniciar() {
@@ -119,8 +155,20 @@ public class ControladorTienda {
             } else {
                 c = new ClientePremium(nombre, dom, nif, email);
             }
+
+            // 1️⃣ Guardar en memoria
             tienda.agregarCliente(c);
-            System.out.println("Cliente agregado correctamente.");
+            System.out.println("Cliente agregado correctamente en la tienda.");
+
+            // 2️⃣ Guardar también en base de datos
+            try {
+                Usuario usuario = new Usuario(nombre, email, "1234"); // contraseña por defecto
+                usuarioDAO.insertar(usuario);
+                System.out.println("✅ Cliente insertado también en base de datos con ID: " + usuario.getId());
+            } catch (Exception e) {
+                System.err.println("⚠️ No se pudo guardar en BD: " + e.getMessage());
+            }
+
         } catch (ClienteDuplicadoException e) {
             System.out.println("⚠️ Error: " + e.getMessage());
         } catch (NumberFormatException e) {

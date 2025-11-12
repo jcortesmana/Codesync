@@ -101,4 +101,30 @@ public class Tienda {
                 .collect(Collectors.toList());
         resultado.forEach(System.out::println);
     }
+
+    public Collection<Cliente> obtenerClientes() {
+        return Collections.unmodifiableCollection(clientes.values());
+    }
+
+    public Collection<Articulo> obtenerArticulos() {
+        return Collections.unmodifiableCollection(articulos.values());
+    }
+
+    public List<Pedido> obtenerPedidos() {
+        return Collections.unmodifiableList(pedidos);
+    }
+
+    public Pedido buscarPedido(int numeroPedido) {
+        return pedidos.stream()
+                .filter(p -> p.getNumeroPedido() == numeroPedido)
+                .findFirst()
+                .orElse(null);
+    }
+
+    public void eliminarCliente(String email) {
+        if (email == null) {
+            return;
+        }
+        clientes.remove(email.toLowerCase());
+    }
 }

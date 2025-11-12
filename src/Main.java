@@ -7,7 +7,7 @@ public class Main {
     public static void main(String[] args) {
   
         Tienda tienda = new Tienda();
-        ControladorTienda controlador = new ControladorTienda(tienda);
+     ControladorTienda controlador = new ControladorTienda(tienda);
 
  
         try {

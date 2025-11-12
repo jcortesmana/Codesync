@@ -1,4 +1,4 @@
-package dao;
+package dao.Impl;
 
 import models.Pedido;
 import models.PedidoLinea;
@@ -9,6 +9,8 @@ import models.Articulo;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+
+import dao.PedidoDAO;
 
 /**
  * PedidoDAOImpl adaptado para que la columna 'fecha' en BD sea de tipo DATE.

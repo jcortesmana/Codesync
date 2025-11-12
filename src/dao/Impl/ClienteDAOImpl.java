@@ -1,4 +1,4 @@
-package dao;
+package dao.Impl;
 
 import models.Cliente;
 import models.ClienteEstandar;
@@ -6,6 +6,9 @@ import models.ClientePremium;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+
+import dao.ClienteDAO;
+
 import java.math.BigDecimal;
 
 public class ClienteDAOImpl implements ClienteDAO {

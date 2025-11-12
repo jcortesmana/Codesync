@@ -1,7 +1,8 @@
 package tests;
 
-import models.*;
 import exceptions.*;
+import models.*;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
@@ -55,7 +56,7 @@ public class TiendaTest {
         Articulo resultado = tienda.buscarArticulo("A1");
         assertNotNull(resultado);
         assertEquals("Teclado mecánico", resultado.getDescripcion());
-        assertEquals(25.0, resultado.getPrecioVenta());
+        assertEquals(25.0, resultado.getPrecio());
         assertEquals(3.5, resultado.getGastosEnvio());
         assertEquals(2, resultado.getTiempoPreparacion());
     }
