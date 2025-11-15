@@ -104,59 +104,88 @@ public class Tienda {
     }
 
 
+// =====================================
+// PEDIDOS
+// =====================================
 
-    // =====================================
-    // PEDIDOS
-    // =====================================
-
-    public void agregarPedido(Pedido p) {
-        try {
-            // si tu Pedido no tiene líneas, aseguramos que no sea null
-            List<PedidoLinea> lineas = p.getLineas() == null ? List.of() : p.getLineas();
-            pedidoDAO.insertarPedidoConLineas(p, lineas);
-        } catch (Exception e) {
-            System.out.println("Error al agregar pedido: " + e.getMessage());
-        }
+public void agregarPedido(Pedido p) {
+    try {
+        List<PedidoLinea> lineas = p.getLineas() == null ? List.of() : p.getLineas();
+        pedidoDAO.insertarPedidoConLineas(p, lineas);
+    } catch (Exception e) {
+        System.out.println("Error al agregar pedido: " + e.getMessage());
     }
+}
 
-    public Pedido buscarPedido(int numero) {
-        try {
-            return pedidoDAO.buscarPorNumero(numero);
-        } catch (Exception e) { return null; }
+
+public Pedido buscarPedido(String numero) {
+    try {
+        Pedido p = pedidoDAO.buscarPorNumero(numero);
+        if (p != null) p.setTienda(this);
+        return p;
+    } catch (Exception e) {
+        return null;
     }
+}
 
-    public List<Pedido> obtenerPedidos() {
-        try {
-            return pedidoDAO.listarTodos();
-        } catch (Exception e) { return List.of(); }
+
+public List<Pedido> obtenerPedidos() {
+    try {
+        List<Pedido> lista = pedidoDAO.listarTodos();
+
+        // 🔥 IMPORTANTE: asignar tienda a cada pedido
+        lista.forEach(p -> p.setTienda(this));
+
+        return lista;
+    } catch (Exception e) {
+        return List.of();
     }
+}
 
-    public void eliminarPedido(int numero) throws PedidoNoCancelableException {
-        try {
-            Pedido p = pedidoDAO.buscarPorNumero(numero);
-            if (p == null) return;
 
-            if (!p.esCancelable())
-                throw new PedidoNoCancelableException("El pedido no puede cancelarse.");
+// AHORA RECIBE STRING
+public void eliminarPedido(String numero) throws PedidoNoCancelableException {
+    try {
+        Pedido p = pedidoDAO.buscarPorNumero(numero);
+        if (p == null) return;
 
-            pedidoDAO.eliminar(numero);
+        if (!p.esCancelable())
+            throw new PedidoNoCancelableException("El pedido no puede cancelarse.");
 
-        } catch (PedidoNoCancelableException e) {
-            throw e;
-        } catch (Exception ignored) {}
-    }
+        pedidoDAO.eliminar(numero);
 
-    public void listarPedidosPendientes(String email) {
-        obtenerPedidos().stream()
-                .filter(p -> !p.isEnviado())
-                .filter(p -> email == null || p.getCliente().getEmail().equalsIgnoreCase(email))
-                .forEach(System.out::println);
-    }
+    } catch (PedidoNoCancelableException e) {
+        throw e;
+    } catch (Exception ignored) {}
+}
 
-    public void listarPedidosEnviados(String email) {
-        obtenerPedidos().stream()
-                .filter(Pedido::isEnviado)
-                .filter(p -> email == null || p.getCliente().getEmail().equalsIgnoreCase(email))
-                .forEach(System.out::println);
-    }
+public void listarPedidosPendientes(String email) {
+    obtenerPedidos().stream()
+            .filter(p -> !p.isEnviado())
+            .filter(p -> email == null || p.getCliente().getEmail().equalsIgnoreCase(email))
+            .forEach(System.out::println);
+}
+
+public void listarPedidosEnviados(String email) {
+    obtenerPedidos().stream()
+            .filter(Pedido::isEnviado)
+            .filter(p -> email == null || p.getCliente().getEmail().equalsIgnoreCase(email))
+            .forEach(System.out::println);
+}
+
+// Mostrar TODOS los pedidos
+public void mostrarPedidos() {
+    obtenerPedidos().forEach(p -> {
+        System.out.println(p);
+    });
+}
+
+// Mostrar pedidos de un cliente específico
+public void mostrarPedidosCliente(String email) {
+    obtenerPedidos().stream()
+            .filter(p -> p.getCliente().getEmail().equalsIgnoreCase(email))
+            .forEach(System.out::println);
+}
+
+
 }

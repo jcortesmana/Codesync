@@ -4,7 +4,6 @@ import dao.*;
 import dao.Impl.ArticuloDAOImpl;
 import dao.Impl.ClienteDAOImpl;
 import dao.Impl.PedidoDAOImpl;
-import dao.Impl.UsuarioDAOImpl;
 import utils.ConexionBD;
 import java.sql.Connection;
 
@@ -17,10 +16,6 @@ public class DAOFactory {
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    public static UsuarioDAO getUsuarioDAO() {
-        return new UsuarioDAOImpl(conexion);
     }
 
     public static ClienteDAO getClienteDAO() {

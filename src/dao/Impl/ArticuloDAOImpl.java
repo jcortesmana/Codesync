@@ -9,7 +9,7 @@ import java.util.List;
 
 public class ArticuloDAOImpl implements ArticuloDAO {
 
-    private Connection conexion;
+    private final Connection conexion;
 
     public ArticuloDAOImpl(Connection conexion) {
         this.conexion = conexion;
@@ -17,44 +17,32 @@ public class ArticuloDAOImpl implements ArticuloDAO {
 
     @Override
     public void insertar(Articulo articulo) throws Exception {
-        String sql = "INSERT INTO articulo (codigo, descripcion, precio, gastosEnvio, tiempoPreparacion) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO articulo (codigo, descripcion, precio, gastosEnvio, tiempoPreparacion) " +
+                     "VALUES (?, ?, ?, ?, ?)";
 
-        try {
-            conexion.setAutoCommit(false);
+        try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            stmt.setString(1, articulo.getCodigo());
+            stmt.setString(2, articulo.getDescripcion());
+            stmt.setDouble(3, articulo.getPrecio());
+            stmt.setDouble(4, articulo.getGastosEnvio());
+            stmt.setInt(5, articulo.getTiempoPreparacion());
 
-            try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
-                stmt.setString(1, articulo.getCodigo());
-                stmt.setString(2, articulo.getDescripcion());
-                stmt.setDouble(3, articulo.getPrecio());
-                stmt.setDouble(4, articulo.getGastosEnvio());
-                stmt.setInt(5, articulo.getTiempoPreparacion());
-
-                stmt.executeUpdate();
-            }
-
-            conexion.commit();
-        } catch (Exception e) {
-            conexion.rollback();
-            throw e;
-        } finally {
-            conexion.setAutoCommit(true);
+            stmt.executeUpdate();
         }
     }
 
     @Override
     public Articulo buscarPorCodigo(String codigo) throws Exception {
-        String sql = "SELECT * FROM articulo WHERE codigo = ?";
-        Articulo articulo = null;
+        String sql = "SELECT codigo, descripcion, precio, gastosEnvio, tiempoPreparacion " +
+                     "FROM articulo WHERE codigo = ?";
 
-        try {
-            conexion.setAutoCommit(false);
+        try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
 
-            try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
-                stmt.setString(1, codigo);
-                ResultSet rs = stmt.executeQuery();
+            stmt.setString(1, codigo);
 
+            try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    articulo = new Articulo(
+                    return new Articulo(
                             rs.getString("codigo"),
                             rs.getString("descripcion"),
                             rs.getDouble("precio"),
@@ -63,69 +51,41 @@ public class ArticuloDAOImpl implements ArticuloDAO {
                     );
                 }
             }
-
-            conexion.commit();
-        } catch (Exception e) {
-            conexion.rollback();
-            throw e;
-        } finally {
-            conexion.setAutoCommit(true);
         }
 
-        return articulo;
+        return null;
     }
 
     @Override
     public List<Articulo> obtenerTodos() throws Exception {
-        List<Articulo> articulos = new ArrayList<>();
-        String sql = "SELECT * FROM articulo";
+        List<Articulo> lista = new ArrayList<>();
 
-        try {
-            conexion.setAutoCommit(false);
+        String sql = "SELECT codigo, descripcion, precio, gastosEnvio, tiempoPreparacion FROM articulo";
 
-            try (Statement stmt = conexion.createStatement();
-                 ResultSet rs = stmt.executeQuery(sql)) {
+        try (Statement stmt = conexion.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
 
-                while (rs.next()) {
-                    articulos.add(new Articulo(
-                            rs.getString("codigo"),
-                            rs.getString("descripcion"),
-                            rs.getDouble("precio"),
-                            rs.getDouble("gastosEnvio"),
-                            rs.getInt("tiempoPreparacion")
-                    ));
-                }
+            while (rs.next()) {
+                lista.add(new Articulo(
+                        rs.getString("codigo"),
+                        rs.getString("descripcion"),
+                        rs.getDouble("precio"),
+                        rs.getDouble("gastosEnvio"),
+                        rs.getInt("tiempoPreparacion")
+                ));
             }
-
-            conexion.commit();
-        } catch (Exception e) {
-            conexion.rollback();
-            throw e;
-        } finally {
-            conexion.setAutoCommit(true);
         }
 
-        return articulos;
+        return lista;
     }
 
     @Override
     public void eliminar(String codigo) throws Exception {
         String sql = "DELETE FROM articulo WHERE codigo = ?";
 
-        try {
-            conexion.setAutoCommit(false);
-
-            try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
-                stmt.setString(1, codigo);
-                stmt.executeUpdate();
-            }
-
-            conexion.commit();
-        } catch (Exception e) {
-            conexion.rollback();
-            throw e;
-        } finally {
-            conexion.setAutoCommit(true);
+        try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            stmt.setString(1, codigo);
+            stmt.executeUpdate();
         }
     }
 }

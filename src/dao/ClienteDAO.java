@@ -11,4 +11,7 @@ public interface ClienteDAO {
     List<Cliente> listarTodos() throws Exception;
     void actualizar(Cliente cliente) throws Exception;
     void eliminar(int id) throws Exception;
+    List<Cliente> listarEstandar() throws Exception;
+    List<Cliente> listarPremium() throws Exception;
+
 }

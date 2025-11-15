@@ -7,8 +7,9 @@ import java.util.Scanner;
 import models.*;
 import exceptions.*;
 
-import dao.UsuarioDAO;
-import dao.Impl.UsuarioDAOImpl;
+import dao.ClienteDAO;
+import dao.Impl.ClienteDAOImpl;
+
 import utils.ConexionBD;
 
 public class ControladorTienda {
@@ -16,40 +17,35 @@ public class ControladorTienda {
     private Tienda tienda;
     private Scanner sc;
 
-    // 🔹 Añadimos conexión y DAO
+    // BD
     private Connection conexion;
-    private UsuarioDAO usuarioDAO;
+    private ClienteDAO clienteDAO;
 
     public ControladorTienda(Tienda tienda) {
         this.tienda = tienda;
         sc = new Scanner(System.in);
 
-        // 🔹 Conexión a la base de datos
         try {
             conexion = ConexionBD.getConnection();
-            usuarioDAO = new UsuarioDAOImpl(conexion);
+            clienteDAO = new ClienteDAOImpl(conexion);
+
             System.out.println("✅ Conectado a la base de datos correctamente.");
 
-            // 🔹 Cargar usuarios de la BD en la tienda
-            try {
-                usuarioDAO.listarTodos().forEach(u -> {
-                    Cliente cliente = new ClienteEstandar(u.getNombre(), "Desconocido", "N/A", u.getEmail());
-                    try {
-                        tienda.agregarCliente(cliente);
-                    } catch (ClienteDuplicadoException ignored) {}
-                });
-                System.out.println("✅ Clientes cargados desde BD al iniciar.");
-            } catch (Exception e) {
-                System.err.println("⚠️ No se pudieron cargar los clientes desde BD: " + e.getMessage());
-            }
+            clienteDAO.listarTodos().forEach(c -> {
+                try { tienda.agregarCliente(c); }
+                catch (ClienteDuplicadoException ignored) {}
+            });
+
+            System.out.println("✅ Clientes cargados desde BD.");
 
         } catch (Exception e) {
-            System.err.println("❌ Error al conectar a la base de datos: " + e.getMessage());
+            System.err.println("❌ Error al conectar a BD: " + e.getMessage());
         }
     }
 
     public void iniciar() {
         int opcion;
+
         do {
             mostrarMenu();
             try {
@@ -58,7 +54,7 @@ public class ControladorTienda {
                     case 1 -> gestionarArticulos();
                     case 2 -> gestionarClientes();
                     case 3 -> gestionarPedidos();
-                    case 0 -> System.out.println("Saliendo de la aplicación...");
+                    case 0 -> System.out.println("Saliendo...");
                     default -> System.out.println("Opción inválida.");
                 }
             } catch (NumberFormatException e) {
@@ -74,20 +70,20 @@ public class ControladorTienda {
         System.out.println("2. Gestión de Clientes");
         System.out.println("3. Gestión de Pedidos");
         System.out.println("0. Salir");
-        System.out.print("Elija una opción: ");
+        System.out.print("Opción: ");
     }
 
-    // =========================
-    // Gestión de Artículos
-    // =========================
+    // =============================================================
+    // ARTÍCULOS
+    // =============================================================
     private void gestionarArticulos() {
         System.out.println("\n--- Gestión de Artículos ---");
         System.out.println("1. Añadir Artículo");
         System.out.println("2. Mostrar Artículos");
         System.out.println("3. Eliminar Artículo");
         System.out.print("Opción: ");
-        String op = sc.nextLine();
-        switch (op) {
+
+        switch (sc.nextLine()) {
             case "1" -> agregarArticulo();
             case "2" -> tienda.mostrarArticulos();
             case "3" -> eliminarArticulo();
@@ -99,58 +95,58 @@ public class ControladorTienda {
         try {
             System.out.print("Código: ");
             String codigo = sc.nextLine();
+
             System.out.print("Descripción: ");
             String desc = sc.nextLine();
-            System.out.print("Precio de venta: ");
+
+            System.out.print("Precio: ");
             double precio = Double.parseDouble(sc.nextLine());
-            System.out.print("Gastos de envío: ");
+
+            System.out.print("Gastos envío: ");
             double envio = Double.parseDouble(sc.nextLine());
-            System.out.print("Tiempo preparación (minutos): ");
+
+            System.out.print("Tiempo preparación: ");
             int tiempo = Integer.parseInt(sc.nextLine());
 
-            Articulo a = new Articulo(codigo, desc, precio, envio, tiempo);
-            tienda.agregarArticulo(a);
-            System.out.println("Artículo agregado correctamente.");
-        } catch (ArticuloDuplicadoException e) {
-            System.out.println("⚠️ Error: " + e.getMessage());
-        } catch (NumberFormatException e) {
-            System.out.println("Datos inválidos, no se pudo agregar el artículo.");
+            tienda.agregarArticulo(new Articulo(codigo, desc, precio, envio, tiempo));
+
+            System.out.println("✔ Artículo agregado.");
+
+        } catch (Exception e) {
+            System.out.println("⚠ Error: " + e.getMessage());
         }
     }
 
     private void eliminarArticulo() {
-    try {
-        System.out.print("Código del artículo a eliminar: ");
-        String codigo = sc.nextLine().trim();
+        try {
+            System.out.print("Código del artículo a eliminar: ");
+            String codigo = sc.nextLine().trim();
 
-        Articulo art = tienda.buscarArticulo(codigo);
+            if (tienda.buscarArticulo(codigo) == null) {
+                System.out.println("⚠️ El artículo no existe.");
+                return;
+            }
 
-        if (art == null) {
-            System.out.println("⚠️ El artículo no existe.");
-            return;
+            tienda.eliminarArticulo(codigo);
+            System.out.println("✔ Artículo eliminado.");
+
+        } catch (Exception e) {
+            System.out.println("⚠ Error eliminando artículo: " + e.getMessage());
         }
-
-        tienda.eliminarArticulo(codigo);
-        System.out.println("Artículo eliminado correctamente.");
-
-    } catch (Exception e) {
-        System.out.println("⚠️ Error eliminando el artículo: " + e.getMessage());
     }
-}
 
-
-    // =========================
-    // Gestión de Clientes
-    // =========================
+    // =============================================================
+    // CLIENTES
+    // =============================================================
     private void gestionarClientes() {
         System.out.println("\n--- Gestión de Clientes ---");
         System.out.println("1. Añadir Cliente");
         System.out.println("2. Mostrar Clientes");
-        System.out.println("3. Mostrar Clientes Estándar");
-        System.out.println("4. Mostrar Clientes Premium");
+        System.out.println("3. Mostrar Estándar");
+        System.out.println("4. Mostrar Premium");
         System.out.print("Opción: ");
-        String op = sc.nextLine();
-        switch (op) {
+
+        switch (sc.nextLine()) {
             case "1" -> agregarCliente();
             case "2" -> tienda.mostrarClientes();
             case "3" -> tienda.mostrarClientesEstandar();
@@ -163,116 +159,155 @@ public class ControladorTienda {
         try {
             System.out.print("Nombre: ");
             String nombre = sc.nextLine();
+
             System.out.print("Domicilio: ");
             String dom = sc.nextLine();
+
             System.out.print("NIF: ");
             String nif = sc.nextLine();
+
             System.out.print("Email: ");
-            String email = sc.nextLine();
+            String email = sc.nextLine().trim().toLowerCase();
 
             System.out.print("Tipo (1 = Estándar, 2 = Premium): ");
             int tipo = Integer.parseInt(sc.nextLine());
-            Cliente c;
+
+            if (tienda.buscarCliente(email) != null) {
+                System.out.println("⚠ Ese email ya existe.");
+                return;
+            }
+
+            Cliente cliente;
+
             if (tipo == 1) {
-                c = new ClienteEstandar(nombre, dom, nif, email);
+                cliente = new ClienteEstandar(nombre, dom, nif, email);
             } else {
-                c = new ClientePremium(nombre, dom, nif, email);
+                System.out.print("Cuota anual: ");
+                double cuota = Double.parseDouble(sc.nextLine());
+
+                System.out.print("Descuento: ");
+                double desc = Double.parseDouble(sc.nextLine());
+
+                ClientePremium cp = new ClientePremium(nombre, dom, nif, email);
+                cp.setCuotaAnual(cuota);
+                cp.setDescuento(desc);
+
+                cliente = cp;
             }
 
-            // 1️⃣ Guardar en memoria
-            tienda.agregarCliente(c);
-            System.out.println("Cliente agregado correctamente en la tienda.");
+            int id = clienteDAO.insertar(cliente);
+            cliente.setId(id);
 
-            // 2️⃣ Guardar también en base de datos
-            try {
-                Usuario usuario = new Usuario(nombre, email, "1234"); // contraseña por defecto
-                usuarioDAO.insertar(usuario);
-                System.out.println("✅ Cliente insertado también en base de datos con ID: " + usuario.getId());
-            } catch (Exception e) {
-                System.err.println("⚠️ No se pudo guardar en BD: " + e.getMessage());
-            }
+            tienda.agregarCliente(cliente);
 
-        } catch (ClienteDuplicadoException e) {
-            System.out.println("⚠️ Error: " + e.getMessage());
-        } catch (NumberFormatException e) {
-            System.out.println("Tipo de cliente inválido.");
+          
+
+        } catch (Exception e) {
+          
         }
     }
 
-    // =========================
-    // Gestión de Pedidos
-    // =========================
-    private void gestionarPedidos() {
-        System.out.println("\n--- Gestión de Pedidos ---");
-        System.out.println("1. Añadir Pedido");
-        System.out.println("2. Eliminar Pedido");
-        System.out.println("3. Mostrar Pedidos Pendientes");
-        System.out.println("4. Mostrar Pedidos Enviados");
-        System.out.print("Opción: ");
-        String op = sc.nextLine();
-        switch (op) {
-            case "1" -> agregarPedido();
-            case "2" -> eliminarPedido();
-            case "3" -> mostrarPedidosPendientes();
-            case "4" -> mostrarPedidosEnviados();
-            default -> System.out.println("Opción inválida.");
-        }
+    // =============================================================
+    // PEDIDOS
+    // =============================================================
+   private void gestionarPedidos() {
+    System.out.println("\n--- Gestión de Pedidos ---");
+    System.out.println("1. Añadir Pedido");
+    System.out.println("2. Eliminar Pedido");
+    System.out.println("3. Mostrar Todos");
+    System.out.println("4. Mostrar por Cliente");
+    System.out.print("Opción: ");
+
+    switch (sc.nextLine()) {
+        case "1" -> agregarPedido();
+        case "2" -> eliminarPedido();
+        case "3" -> tienda.mostrarPedidos();
+        case "4" -> mostrarPedidosCliente();
+        default -> System.out.println("Opción inválida.");
     }
+}
+
 
     private void agregarPedido() {
         try {
             System.out.print("Número de pedido: ");
-            int num = Integer.parseInt(sc.nextLine());
-            System.out.print("Email del cliente: ");
-            String email = sc.nextLine();
-            Cliente c = tienda.buscarCliente(email);
-            if (c == null) {
-                System.out.println("Cliente no existe. Debe registrarlo primero:");
-                agregarCliente();
-                c = tienda.buscarCliente(email);
-            }
-            System.out.print("Código del artículo: ");
-            String cod = sc.nextLine();
-            Articulo a = tienda.buscarArticulo(cod);
-            if (a == null) {
-                System.out.println("Artículo no encontrado. No se puede crear el pedido.");
+            String numero = sc.nextLine().trim();
+
+            System.out.print("Email cliente: ");
+            String email = sc.nextLine().trim();
+
+            Cliente cliente = tienda.buscarCliente(email);
+
+            if (cliente == null) {
+                System.out.println("⚠ Cliente no encontrado.");
                 return;
             }
-            System.out.print("Cantidad: ");
-            int cantidad = Integer.parseInt(sc.nextLine());
 
-            Pedido p = new Pedido(num, c, a, cantidad, LocalDateTime.now());
-            tienda.agregarPedido(p);
-            System.out.println("Pedido agregado correctamente. Total: " + p.calcularTotal());
-        } catch (NumberFormatException e) {
-            System.out.println("Datos inválidos para crear el pedido.");
+            // *** CONSTRUCTOR CORRECTO ***
+            Pedido pedido = new Pedido(
+                    numero,
+                    cliente,
+                    null,
+                    0,
+                    LocalDateTime.now(),
+                    tienda
+            );
+
+            while (true) {
+                System.out.print("Código de artículo: ");
+                String codigo = sc.nextLine().trim();
+
+                Articulo art = tienda.buscarArticulo(codigo);
+                if (art == null) {
+                    System.out.println("⚠ El artículo no existe.");
+                    continue;
+                }
+
+                System.out.print("Cantidad: ");
+                int cantidad = Integer.parseInt(sc.nextLine());
+
+                pedido.addLinea(art, cantidad);
+                System.out.println("✔ Línea añadida.");
+
+                System.out.print("¿Añadir otra? (s/n): ");
+                if (!sc.nextLine().trim().equalsIgnoreCase("s"))
+                    break;
+            }
+
+            tienda.agregarPedido(pedido);
+            System.out.println("✔ Pedido creado.");
+            System.out.println("TOTAL: " + pedido.calcularTotal());
+
+        } catch (Exception e) {
+            System.out.println("❌ Error creando pedido: " + e.getMessage());
         }
     }
 
     private void eliminarPedido() {
         try {
-            System.out.print("Número de pedido a eliminar: ");
-            int num = Integer.parseInt(sc.nextLine());
-            tienda.eliminarPedido(num);
-            System.out.println("Solicitud de eliminación procesada.");
-        } catch (PedidoNoCancelableException e) {
-            System.out.println("⚠️ " + e.getMessage());
-        } catch (NumberFormatException e) {
-            System.out.println("Número de pedido inválido.");
+            System.out.print("Número pedido: ");
+            String numero = sc.nextLine().trim();
+
+            tienda.eliminarPedido(numero);
+
+            System.out.println("✔ Pedido eliminado.");
+
+        } catch (Exception e) {
+            System.out.println("⚠ Error eliminando pedido: " + e.getMessage());
         }
     }
 
-    private void mostrarPedidosPendientes() {
-        System.out.print("Filtrar por cliente (enter = todos): ");
-        String email = sc.nextLine();
-        if (email.isBlank()) email = null;
-        tienda.listarPedidosPendientes(email);
+    private void mostrarPedidosCliente() {
+    System.out.print("Email del cliente: ");
+    String email = sc.nextLine().trim();
+
+    Cliente c = tienda.buscarCliente(email);
+    if (c == null) {
+        System.out.println("⚠ Cliente no encontrado.");
+        return;
     }
 
-    private void mostrarPedidosEnviados() {
-        System.out.print("Filtrar por cliente (enter = todos): ");
-        String email = sc.nextLine();
-        if (email.isBlank()) email = null;
-        tienda.listarPedidosEnviados(email);
+    tienda.mostrarPedidosCliente(email);
     }
+
 }
