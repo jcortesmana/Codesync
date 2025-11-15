@@ -84,11 +84,13 @@ public class ControladorTienda {
         System.out.println("\n--- Gestión de Artículos ---");
         System.out.println("1. Añadir Artículo");
         System.out.println("2. Mostrar Artículos");
+        System.out.println("3. Eliminar Artículo");
         System.out.print("Opción: ");
         String op = sc.nextLine();
         switch (op) {
             case "1" -> agregarArticulo();
             case "2" -> tienda.mostrarArticulos();
+            case "3" -> eliminarArticulo();
             default -> System.out.println("Opción inválida.");
         }
     }
@@ -115,6 +117,27 @@ public class ControladorTienda {
             System.out.println("Datos inválidos, no se pudo agregar el artículo.");
         }
     }
+
+    private void eliminarArticulo() {
+    try {
+        System.out.print("Código del artículo a eliminar: ");
+        String codigo = sc.nextLine().trim();
+
+        Articulo art = tienda.buscarArticulo(codigo);
+
+        if (art == null) {
+            System.out.println("⚠️ El artículo no existe.");
+            return;
+        }
+
+        tienda.eliminarArticulo(codigo);
+        System.out.println("Artículo eliminado correctamente.");
+
+    } catch (Exception e) {
+        System.out.println("⚠️ Error eliminando el artículo: " + e.getMessage());
+    }
+}
+
 
     // =========================
     // Gestión de Clientes

@@ -1,6 +1,7 @@
 package factory;
 
 import dao.*;
+import dao.Impl.ArticuloDAOImpl;
 import dao.Impl.ClienteDAOImpl;
 import dao.Impl.PedidoDAOImpl;
 import dao.Impl.UsuarioDAOImpl;
@@ -29,4 +30,9 @@ public class DAOFactory {
     public static PedidoDAO getPedidoDAO() {
         return new PedidoDAOImpl(conexion);
     }
+
+    public static ArticuloDAO getArticuloDAO() {
+        return new ArticuloDAOImpl(conexion);
+    }
+
 }

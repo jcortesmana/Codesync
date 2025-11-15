@@ -4,7 +4,7 @@ import models.Pedido;
 import models.PedidoLinea;
 import models.Cliente;
 import models.ClienteEstandar;
-import models.Articulo;
+
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -12,11 +12,6 @@ import java.util.List;
 
 import dao.PedidoDAO;
 
-/**
- * PedidoDAOImpl adaptado para que la columna 'fecha' en BD sea de tipo DATE.
- * Usa pedido.getFechaHora().toLocalDate() para persistir solo la parte de fecha.
- * Todas las referencias a getNumero() han sido reemplazadas por getNumeroPedido().
- */
 public class PedidoDAOImpl implements PedidoDAO {
 
     private final Connection conexion;
@@ -25,32 +20,35 @@ public class PedidoDAOImpl implements PedidoDAO {
         this.conexion = conexion;
     }
 
-    /**
-     * Inserta un pedido y sus líneas (pedido_articulo) usando procedimientos almacenados.
-     * Retorna el número de pedido generado (AUTO_INCREMENT).
-     */
     @Override
     public int insertarPedidoConLineas(Pedido pedido, List<PedidoLinea> lineas) throws Exception {
-        String callInsertPedido = "{CALL sp_insert_pedido(?, ?, ?, ?, ?)}"; // OUT p_numero es param 5
-        String callInsertLinea = "{CALL sp_insert_pedido_articulo(?, ?, ?)}";
+
+        String callInsertPedido = "{CALL sp_insert_pedido(?, ?, ?, ?, ?)}";
+        String callInsertLinea  = "{CALL sp_insert_pedido_articulo(?, ?, ?)}";
+
         CallableStatement csPedido = null;
-        CallableStatement csLinea = null;
+        CallableStatement csLinea  = null;
 
         try {
             conexion.setAutoCommit(false);
 
+            // 1️⃣ cantidad total = suma de cantidades de las líneas
+            int cantidadTotal = lineas.stream()
+                    .mapToInt(PedidoLinea::getCantidad)
+                    .sum();
+
+            // 2️⃣ insertar la cabecera del pedido
             csPedido = conexion.prepareCall(callInsertPedido);
-            // La BD tiene columna 'fecha' tipo DATE -> usamos sólo la parte LocalDate
-            csPedido.setDate(1, java.sql.Date.valueOf(pedido.getFechaHora().toLocalDate()));
-            csPedido.setInt(2, pedido.getCantidad());
+            csPedido.setDate(1, Date.valueOf(pedido.getFechaHora().toLocalDate()));
+            csPedido.setInt(2, cantidadTotal);   // ← CORREGIDO
             csPedido.setBoolean(3, pedido.isEnviado());
-            // Cliente debe tener id establecido (id_cliente en BD)
             csPedido.setInt(4, pedido.getCliente().getId());
-            csPedido.registerOutParameter(5, java.sql.Types.INTEGER);
+            csPedido.registerOutParameter(5, Types.INTEGER);
 
             csPedido.execute();
             int numeroGenerado = csPedido.getInt(5);
 
+            // 3️⃣ insertar líneas
             csLinea = conexion.prepareCall(callInsertLinea);
             for (PedidoLinea linea : lineas) {
                 csLinea.setInt(1, numeroGenerado);
@@ -61,134 +59,165 @@ public class PedidoDAOImpl implements PedidoDAO {
 
             conexion.commit();
             return numeroGenerado;
-        } catch (SQLException e) {
+
+        } catch (Exception e) {
             conexion.rollback();
             throw e;
+
         } finally {
-            if (csLinea != null) try { csLinea.close(); } catch (SQLException ignored) {}
-            if (csPedido != null) try { csPedido.close(); } catch (SQLException ignored) {}
+            if (csPedido != null) csPedido.close();
+            if (csLinea != null) csLinea.close();
             conexion.setAutoCommit(true);
         }
     }
 
-    /**
-     * Buscar pedido por número. Recupera datos del pedido y del cliente asociado.
-     */
     @Override
     public Pedido buscarPorNumero(int numero) throws Exception {
-        String sql = "SELECT p.numero, p.fecha, p.cantidad, p.enviado, p.id_cliente, " +
-                "c.nombre, c.domicilio, c.nif, c.email, c.tipo_cliente " +
-                "FROM pedido p JOIN cliente c ON p.id_cliente = c.id_cliente WHERE p.numero = ?";
-        try (PreparedStatement ps = conexion.prepareStatement(sql)) {
-            ps.setInt(1, numero);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    // Construimos cliente (simple). Si necesitas datos premium, ajustar.
-                    Cliente cliente;
-                    String tipo = rs.getString("tipo_cliente");
-                    if ("PREMIUM".equalsIgnoreCase(tipo)) {
-                        // Si tu app necesita atributos premium completos, deberías leer la tabla cliente_premium
-                        cliente = new ClienteEstandar(rs.getString("nombre"),
-                                rs.getString("domicilio"),
-                                rs.getString("nif"),
-                                rs.getString("email"));
-                    } else {
-                        cliente = new ClienteEstandar(rs.getString("nombre"),
-                                rs.getString("domicilio"),
-                                rs.getString("nif"),
-                                rs.getString("email"));
-                    }
 
-                    Pedido pedido = new Pedido(
-                            rs.getInt("numero"),
-                            cliente,
-                            // Creamos un Articulo placeholder con solo el código (detalles pueden venir de articulo DAO)
-                            new Articulo("", "", 0.0, 0.0, 0),
-                            rs.getInt("cantidad"),
-                            rs.getDate("fecha").toLocalDate().atStartOfDay()
-                    );
-                    pedido.setEnviado(rs.getBoolean("enviado"));
-                    return pedido;
+        // 1️⃣ primero obtenemos la cabecera del pedido
+        String sqlPedido =
+                "SELECT p.numero, p.fecha, p.cantidad, p.enviado, c.nombre, c.domicilio, " +
+                "c.nif, c.email, c.tipo_cliente " +
+                "FROM pedido p JOIN cliente c ON p.id_cliente = c.id_cliente " +
+                "WHERE p.numero = ?";
+
+        // 2️⃣ luego obtenemos sus líneas reales
+        String sqlLineas =
+                "SELECT codigo_articulo, cantidad " +
+                "FROM pedido_articulo WHERE id_pedido = ?";
+
+        Pedido pedido = null;
+
+        try {
+            // → recuperar cabecera
+            try (PreparedStatement ps = conexion.prepareStatement(sqlPedido)) {
+                ps.setInt(1, numero);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+
+                        Cliente cliente = new ClienteEstandar(
+                                rs.getString("nombre"),
+                                rs.getString("domicilio"),
+                                rs.getString("nif"),
+                                rs.getString("email")
+                        );
+
+                        pedido = new Pedido(
+                                rs.getInt("numero"),
+                                cliente,
+                                null,    // no usamos este constructor para línea aquí
+                                0,
+                                rs.getDate("fecha").toLocalDate().atStartOfDay()
+                        );
+
+                        pedido.setEnviado(rs.getBoolean("enviado"));
+                    }
                 }
             }
+
+            if (pedido == null) return null;
+
+            // → recuperar líneas
+            try (PreparedStatement ps2 = conexion.prepareStatement(sqlLineas)) {
+                ps2.setInt(1, numero);
+
+                try (ResultSet rsLineas = ps2.executeQuery()) {
+                    while (rsLineas.next()) {
+                        pedido.getLineas().add(
+                                new PedidoLinea(
+                                        rsLineas.getString("codigo_articulo"),
+                                        rsLineas.getInt("cantidad")
+                                )
+                        );
+                    }
+                }
+            }
+
+            return pedido;
+
+        } catch (Exception e) {
+            throw e;
         }
-        return null;
     }
 
-    /**
-     * Lista todos los pedidos (con cliente básico).
-     */
+
     @Override
     public List<Pedido> listarTodos() throws Exception {
         List<Pedido> lista = new ArrayList<>();
-        String sql = "SELECT p.numero, p.fecha, p.cantidad, p.enviado, c.nombre, c.domicilio, c.nif, c.email, c.tipo_cliente " +
-                "FROM pedido p JOIN cliente c ON p.id_cliente = c.id_cliente";
+
+        String sql = "SELECT numero FROM pedido";
+
         try (Statement st = conexion.createStatement();
              ResultSet rs = st.executeQuery(sql)) {
-            while (rs.next()) {
-                Cliente cliente = new ClienteEstandar(
-                        rs.getString("nombre"),
-                        rs.getString("domicilio"),
-                        rs.getString("nif"),
-                        rs.getString("email")
-                );
 
-                Pedido pedido = new Pedido(
-                        rs.getInt("numero"),
-                        cliente,
-                        new Articulo("", "", 0.0, 0.0, 0),
-                        rs.getInt("cantidad"),
-                        rs.getDate("fecha").toLocalDate().atStartOfDay()
-                );
-                pedido.setEnviado(rs.getBoolean("enviado"));
-                lista.add(pedido);
+            while (rs.next()) {
+                int num = rs.getInt("numero");
+                lista.add(buscarPorNumero(num)); // ← reutilizamos método correcto
             }
         }
         return lista;
     }
 
-    /**
-     * Actualiza fila pedido (columna fecha es DATE, por eso usamos toLocalDate()).
-     */
     @Override
     public void actualizar(Pedido pedido) throws Exception {
+
         String sql = "UPDATE pedido SET fecha=?, cantidad=?, enviado=?, id_cliente=? WHERE numero=?";
+
+        // cantidad total = suma de cantidades de líneas
+        int cantidadTotal = pedido.getLineas().stream()
+                .mapToInt(PedidoLinea::getCantidad)
+                .sum();
+
         try {
             conexion.setAutoCommit(false);
+
             try (PreparedStatement ps = conexion.prepareStatement(sql)) {
-                ps.setDate(1, java.sql.Date.valueOf(pedido.getFechaHora().toLocalDate()));
-                ps.setInt(2, pedido.getCantidad());
+                ps.setDate(1, Date.valueOf(pedido.getFechaHora().toLocalDate()));
+                ps.setInt(2, cantidadTotal);  // CORREGIDO
                 ps.setBoolean(3, pedido.isEnviado());
                 ps.setInt(4, pedido.getCliente().getId());
-                // Corrección: usar getNumeroPedido()
                 ps.setInt(5, pedido.getNumeroPedido());
                 ps.executeUpdate();
             }
+
             conexion.commit();
-        } catch (SQLException e) {
+
+        } catch (Exception e) {
             conexion.rollback();
             throw e;
+
         } finally {
             conexion.setAutoCommit(true);
         }
     }
 
-    /**
-     * Elimina pedido por número.
-     */
     @Override
     public void eliminar(int numero) throws Exception {
-        String sql = "DELETE FROM pedido WHERE numero=?";
+
         try {
             conexion.setAutoCommit(false);
-            try (PreparedStatement ps = conexion.prepareStatement(sql)) {
-                ps.setInt(1, numero);
-                ps.executeUpdate();
+
+            // 1️⃣ borrar líneas primero
+            try (PreparedStatement ps1 = conexion.prepareStatement(
+                    "DELETE FROM pedido_articulo WHERE id_pedido=?")) {
+                ps1.setInt(1, numero);
+                ps1.executeUpdate();
             }
+
+            // 2️⃣ borrar cabecera
+            try (PreparedStatement ps2 = conexion.prepareStatement(
+                    "DELETE FROM pedido WHERE numero=?")) {
+                ps2.setInt(1, numero);
+                ps2.executeUpdate();
+            }
+
             conexion.commit();
-        } catch (SQLException e) {
+
+        } catch (Exception e) {
             conexion.rollback();
             throw e;
+
         } finally {
             conexion.setAutoCommit(true);
         }

@@ -1,130 +1,162 @@
 package models;
+
+import dao.*;
 import exceptions.*;
-import java.util.*;
-import java.util.stream.Collectors;
+import factory.DAOFactory;
+
+import java.util.List;
+import java.util.Collection;
+
 public class Tienda {
-    // Elegimos Map para clientes (clave = email) -> búsqueda rápida y unicidad por clave
-    private Map<String, Cliente> clientes = new HashMap<>();
 
-    // Map para artículos por código -> búsqueda O(1) por código único
-    private Map<String, Articulo> articulos = new HashMap<>();
+    private ClienteDAO clienteDAO;
+    private ArticuloDAO articuloDAO;
+    private PedidoDAO pedidoDAO;
 
-    // Lista para pedidos (orden de inserción, recorrido, etc.)
-    private List<Pedido> pedidos = new ArrayList<>();
+    public Tienda() {
+        clienteDAO = DAOFactory.getClienteDAO();
+        articuloDAO = DAOFactory.getArticuloDAO();
+        pedidoDAO = DAOFactory.getPedidoDAO();
+    }
 
-    // ========================
-    // Gestión de clientes
-    // ========================
+
+    // =====================================
+    // CLIENTES
+    // =====================================
+
     public void agregarCliente(Cliente c) throws ClienteDuplicadoException {
-        String email = c.getEmail().toLowerCase();
-        if (clientes.containsKey(email)) {
-            throw new ClienteDuplicadoException("El cliente con email '" + c.getEmail() + "' ya existe.");
+        try {
+            clienteDAO.insertar(c);
+        } catch (Exception e) {
+            throw new ClienteDuplicadoException("El cliente ya existe.");
         }
-        clientes.put(email, c);
     }
 
     public Cliente buscarCliente(String email) {
-        if (email == null) return null;
-        return clientes.get(email.toLowerCase());
+        try {
+            return clienteDAO.buscarPorEmail(email);
+        } catch (Exception e) { return null; }
+    }
+
+    public Collection<Cliente> obtenerClientes() {
+        try {
+            return clienteDAO.listarTodos();
+        } catch (Exception e) { return List.of(); }
+    }
+
+    public void eliminarCliente(String email) {
+        try {
+            Cliente c = clienteDAO.buscarPorEmail(email);
+            if (c != null) clienteDAO.eliminar(c.getId());
+        } catch (Exception ignored) {}
     }
 
     public void mostrarClientes() {
-        clientes.values().forEach(System.out::println);
+        obtenerClientes().forEach(System.out::println);
     }
 
     public void mostrarClientesEstandar() {
-        clientes.values().stream()
+        obtenerClientes().stream()
                 .filter(c -> c instanceof ClienteEstandar)
                 .forEach(System.out::println);
     }
 
     public void mostrarClientesPremium() {
-        clientes.values().stream()
+        obtenerClientes().stream()
                 .filter(c -> c instanceof ClientePremium)
                 .forEach(System.out::println);
     }
 
-    // ========================
-    // Gestión de artículos
-    // ========================
+
+
+    // =====================================
+    // ARTÍCULOS
+    // =====================================
+
     public void agregarArticulo(Articulo a) throws ArticuloDuplicadoException {
-        String codigo = a.getCodigo();
-        if (articulos.containsKey(codigo)) {
-            throw new ArticuloDuplicadoException("El artículo con código '" + codigo + "' ya existe.");
+        try {
+            articuloDAO.insertar(a);
+        } catch (Exception e) {
+            throw new ArticuloDuplicadoException("El artículo ya existe.");
         }
-        articulos.put(codigo, a);
     }
 
     public Articulo buscarArticulo(String codigo) {
-        return articulos.get(codigo);
-    }
-
-    public void mostrarArticulos() {
-        articulos.values().forEach(System.out::println);
-    }
-
-    // ========================
-    // Gestión de pedidos
-    // ========================
-    public void agregarPedido(Pedido p) {
-        pedidos.add(p);
-    }
-
-    public void eliminarPedido(int numeroPedido) throws PedidoNoCancelableException {
-        Optional<Pedido> opt = pedidos.stream()
-                .filter(p -> p.getNumeroPedido() == numeroPedido)
-                .findFirst();
-
-        if (opt.isEmpty()) {
-            // No existe -> no hacemos nada (alternativa: lanzar excepción PedidoNoEncontrado)
-            return;
-        }
-
-        Pedido p = opt.get();
-        if (!p.esCancelable()) {
-            throw new PedidoNoCancelableException("El pedido " + numeroPedido + " no puede cancelarse (ya preparado/enviado o fuera de plazo).");
-        }
-
-        pedidos.remove(p);
-    }
-
-    public void listarPedidosPendientes(String clienteEmail) {
-        List<Pedido> resultado = pedidos.stream()
-                .filter(p -> !p.isEnviado() && (clienteEmail == null || p.getCliente().getEmail().equalsIgnoreCase(clienteEmail)))
-                .collect(Collectors.toList());
-        resultado.forEach(System.out::println);
-    }
-
-    public void listarPedidosEnviados(String clienteEmail) {
-        List<Pedido> resultado = pedidos.stream()
-                .filter(p -> p.isEnviado() && (clienteEmail == null || p.getCliente().getEmail().equalsIgnoreCase(clienteEmail)))
-                .collect(Collectors.toList());
-        resultado.forEach(System.out::println);
-    }
-
-    public Collection<Cliente> obtenerClientes() {
-        return Collections.unmodifiableCollection(clientes.values());
+        try {
+            return articuloDAO.buscarPorCodigo(codigo);
+        } catch (Exception e) { return null; }
     }
 
     public Collection<Articulo> obtenerArticulos() {
-        return Collections.unmodifiableCollection(articulos.values());
+        try {
+            return articuloDAO.obtenerTodos();
+        } catch (Exception e) { return List.of(); }
+    }
+
+    public void mostrarArticulos() {
+        obtenerArticulos().forEach(System.out::println);
+    }
+
+    public void eliminarArticulo(String codigo) {
+        try {
+            articuloDAO.eliminar(codigo);
+        } catch (Exception ignored) {}
+    }
+
+
+
+    // =====================================
+    // PEDIDOS
+    // =====================================
+
+    public void agregarPedido(Pedido p) {
+        try {
+            // si tu Pedido no tiene líneas, aseguramos que no sea null
+            List<PedidoLinea> lineas = p.getLineas() == null ? List.of() : p.getLineas();
+            pedidoDAO.insertarPedidoConLineas(p, lineas);
+        } catch (Exception e) {
+            System.out.println("Error al agregar pedido: " + e.getMessage());
+        }
+    }
+
+    public Pedido buscarPedido(int numero) {
+        try {
+            return pedidoDAO.buscarPorNumero(numero);
+        } catch (Exception e) { return null; }
     }
 
     public List<Pedido> obtenerPedidos() {
-        return Collections.unmodifiableList(pedidos);
+        try {
+            return pedidoDAO.listarTodos();
+        } catch (Exception e) { return List.of(); }
     }
 
-    public Pedido buscarPedido(int numeroPedido) {
-        return pedidos.stream()
-                .filter(p -> p.getNumeroPedido() == numeroPedido)
-                .findFirst()
-                .orElse(null);
+    public void eliminarPedido(int numero) throws PedidoNoCancelableException {
+        try {
+            Pedido p = pedidoDAO.buscarPorNumero(numero);
+            if (p == null) return;
+
+            if (!p.esCancelable())
+                throw new PedidoNoCancelableException("El pedido no puede cancelarse.");
+
+            pedidoDAO.eliminar(numero);
+
+        } catch (PedidoNoCancelableException e) {
+            throw e;
+        } catch (Exception ignored) {}
     }
 
-    public void eliminarCliente(String email) {
-        if (email == null) {
-            return;
-        }
-        clientes.remove(email.toLowerCase());
+    public void listarPedidosPendientes(String email) {
+        obtenerPedidos().stream()
+                .filter(p -> !p.isEnviado())
+                .filter(p -> email == null || p.getCliente().getEmail().equalsIgnoreCase(email))
+                .forEach(System.out::println);
+    }
+
+    public void listarPedidosEnviados(String email) {
+        obtenerPedidos().stream()
+                .filter(Pedido::isEnviado)
+                .filter(p -> email == null || p.getCliente().getEmail().equalsIgnoreCase(email))
+                .forEach(System.out::println);
     }
 }
