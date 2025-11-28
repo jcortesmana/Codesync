@@ -2,7 +2,7 @@ package models;
 
 import dao.*;
 import exceptions.*;
-import factory.DAOFactory;
+import factory.JPADAOFactory;
 
 import java.util.List;
 import java.util.Collection;
@@ -14,19 +14,17 @@ public class Tienda {
     private PedidoDAO pedidoDAO;
 
     public Tienda() {
-        clienteDAO = DAOFactory.getClienteDAO();
-        articuloDAO = DAOFactory.getArticuloDAO();
-        pedidoDAO = DAOFactory.getPedidoDAO();
+        // usando JPA DAOs por defecto ahora
+        clienteDAO = JPADAOFactory.getClienteDAO();
+        articuloDAO = JPADAOFactory.getArticuloDAO();
+        pedidoDAO = JPADAOFactory.getPedidoDAO();
     }
 
-
-    // =====================================
     // CLIENTES
-    // =====================================
-
     public void agregarCliente(Cliente c) throws ClienteDuplicadoException {
         try {
-            clienteDAO.insertar(c);
+            int id = clienteDAO.insertar(c);
+            c.setId(id);
         } catch (Exception e) {
             throw new ClienteDuplicadoException("El cliente ya existe.");
         }
@@ -67,12 +65,7 @@ public class Tienda {
                 .forEach(System.out::println);
     }
 
-
-
-    // =====================================
-    // ARTÍCULOS
-    // =====================================
-
+    // ARTICULOS
     public void agregarArticulo(Articulo a) throws ArticuloDuplicadoException {
         try {
             articuloDAO.insertar(a);
@@ -103,89 +96,73 @@ public class Tienda {
         } catch (Exception ignored) {}
     }
 
-
-// =====================================
-// PEDIDOS
-// =====================================
-
-public void agregarPedido(Pedido p) {
-    try {
-        List<PedidoLinea> lineas = p.getLineas() == null ? List.of() : p.getLineas();
-        pedidoDAO.insertarPedidoConLineas(p, lineas);
-    } catch (Exception e) {
-        System.out.println("Error al agregar pedido: " + e.getMessage());
+    // PEDIDOS
+    public void agregarPedido(Pedido p) {
+        try {
+            List<PedidoLinea> lineas = p.getLineas() == null ? List.of() : p.getLineas();
+            String num = pedidoDAO.insertarPedidoConLineas(p, lineas);
+            // si quieres, puedes setear el numero obtenido en p
+            if (num != null) {
+                // p.setNumeroPedido(num); // si tienes setter para numero, adaptalo
+            }
+        } catch (Exception e) {
+            System.out.println("Error al agregar pedido: " + e.getMessage());
+        }
     }
-}
 
-
-public Pedido buscarPedido(String numero) {
-    try {
-        Pedido p = pedidoDAO.buscarPorNumero(numero);
-        if (p != null) p.setTienda(this);
-        return p;
-    } catch (Exception e) {
-        return null;
+    public Pedido buscarPedido(String numero) {
+        try {
+            Pedido p = pedidoDAO.buscarPorNumero(numero);
+            if (p != null) p.setTienda(this);
+            return p;
+        } catch (Exception e) {
+            return null;
+        }
     }
-}
 
-
-public List<Pedido> obtenerPedidos() {
-    try {
-        List<Pedido> lista = pedidoDAO.listarTodos();
-
-        // 🔥 IMPORTANTE: asignar tienda a cada pedido
-        lista.forEach(p -> p.setTienda(this));
-
-        return lista;
-    } catch (Exception e) {
-        return List.of();
+    public List<Pedido> obtenerPedidos() {
+        try {
+            List<Pedido> lista = pedidoDAO.listarTodos();
+            lista.forEach(p -> p.setTienda(this));
+            return lista;
+        } catch (Exception e) {
+            return List.of();
+        }
     }
-}
 
+    public void eliminarPedido(String numero) throws PedidoNoCancelableException {
+        try {
+            Pedido p = pedidoDAO.buscarPorNumero(numero);
+            if (p == null) return;
+            if (!p.esCancelable())
+                throw new PedidoNoCancelableException("El pedido no puede cancelarse.");
+            pedidoDAO.eliminar(numero);
+        } catch (PedidoNoCancelableException e) {
+            throw e;
+        } catch (Exception ignored) {}
+    }
 
-// AHORA RECIBE STRING
-public void eliminarPedido(String numero) throws PedidoNoCancelableException {
-    try {
-        Pedido p = pedidoDAO.buscarPorNumero(numero);
-        if (p == null) return;
+    public void listarPedidosPendientes(String email) {
+        obtenerPedidos().stream()
+                .filter(p -> !p.isEnviado())
+                .filter(p -> email == null || p.getCliente().getEmail().equalsIgnoreCase(email))
+                .forEach(System.out::println);
+    }
 
-        if (!p.esCancelable())
-            throw new PedidoNoCancelableException("El pedido no puede cancelarse.");
+    public void listarPedidosEnviados(String email) {
+        obtenerPedidos().stream()
+                .filter(Pedido::isEnviado)
+                .filter(p -> email == null || p.getCliente().getEmail().equalsIgnoreCase(email))
+                .forEach(System.out::println);
+    }
 
-        pedidoDAO.eliminar(numero);
+    public void mostrarPedidos() {
+        obtenerPedidos().forEach(System.out::println);
+    }
 
-    } catch (PedidoNoCancelableException e) {
-        throw e;
-    } catch (Exception ignored) {}
-}
-
-public void listarPedidosPendientes(String email) {
-    obtenerPedidos().stream()
-            .filter(p -> !p.isEnviado())
-            .filter(p -> email == null || p.getCliente().getEmail().equalsIgnoreCase(email))
-            .forEach(System.out::println);
-}
-
-public void listarPedidosEnviados(String email) {
-    obtenerPedidos().stream()
-            .filter(Pedido::isEnviado)
-            .filter(p -> email == null || p.getCliente().getEmail().equalsIgnoreCase(email))
-            .forEach(System.out::println);
-}
-
-// Mostrar TODOS los pedidos
-public void mostrarPedidos() {
-    obtenerPedidos().forEach(p -> {
-        System.out.println(p);
-    });
-}
-
-// Mostrar pedidos de un cliente específico
-public void mostrarPedidosCliente(String email) {
-    obtenerPedidos().stream()
-            .filter(p -> p.getCliente().getEmail().equalsIgnoreCase(email))
-            .forEach(System.out::println);
-}
-
-
+    public void mostrarPedidosCliente(String email) {
+        obtenerPedidos().stream()
+                .filter(p -> p.getCliente().getEmail().equalsIgnoreCase(email))
+                .forEach(System.out::println);
+    }
 }

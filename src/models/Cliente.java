@@ -1,28 +1,35 @@
 package models;
 
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "cliente")
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name = "tipo_cliente")
 public abstract class Cliente {
-    private int id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_cliente")
+    private Integer id;
+
     private String nombre;
     private String domicilio;
     private String nif;
+    @Column(unique = true)
     private String email;
 
     public Cliente() {}
 
-    public Cliente(int id, String nombre, String domicilio, String nif, String email) {
-        this.id = id;
+    public Cliente(String nombre, String domicilio, String nif, String email) {
         this.nombre = nombre;
         this.domicilio = domicilio;
         this.nif = nif;
         this.email = email;
     }
 
-    public Cliente(String nombre, String domicilio, String nif, String email) {
-        this(0, nombre, domicilio, nif, email);
-    }
-
-    public int getId() { return id; }
+    public Integer getId() { return id == null ? 0 : id; } // compatibilidad con código previo
     public void setId(int id) { this.id = id; }
+
     public String getNombre() { return nombre; }
     public void setNombre(String nombre) { this.nombre = nombre; }
     public String getDomicilio() { return domicilio; }
@@ -36,6 +43,6 @@ public abstract class Cliente {
 
     @Override
     public String toString() {
-        return "Cliente{id=" + id + ", nombre='" + nombre + "', email='" + email + "', nif='" + nif + "'}";
+        return "Cliente{id=" + id + ", nombre='" + nombre + "', email='" + email + "'}";
     }
 }

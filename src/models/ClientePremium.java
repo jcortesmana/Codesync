@@ -1,40 +1,42 @@
 package models;
 
+import jakarta.persistence.*;
+
+@Entity
+@DiscriminatorValue("PREMIUM")
+@Table(name = "cliente_premium")
+@PrimaryKeyJoinColumn(name = "id_cliente")
 public class ClientePremium extends Cliente {
-    private double cuotaAnual;
-    private double descuento; // porcentaje en 0..1
+
+    @Column(name = "cuota_anual")
+    private Double cuotaAnual;
+
+    @Column(name = "descuento")
+    private Double descuento;
 
     public ClientePremium() { super(); }
 
     public ClientePremium(String nombre, String domicilio, String nif, String email) {
         super(nombre, domicilio, nif, email);
-        this.cuotaAnual = 30.0;   // valores por defecto
+        this.cuotaAnual = 30.0;
         this.descuento = 0.20;
     }
 
-    
-   public ClientePremium(int id, String nombre, String domicilio, String nif, String email) {
-    super(id, nombre, domicilio, nif, email);
-    this.cuotaAnual = 0;  // o poner valores por defecto si quieres
-    this.descuento = 0;
-}
-
-    public ClientePremium(int id, String nombre, String domicilio, String nif, String email,
-                          double cuotaAnual, double descuento) {
-        super(id, nombre, domicilio, nif, email);
-        this.cuotaAnual = cuotaAnual;
+    public ClientePremium(int id, String nombre, String domicilio, String nif, String email, double cuota, double descuento) {
+        super(nombre, domicilio, nif, email);
+        setId(id);
+        this.cuotaAnual = cuota;
         this.descuento = descuento;
     }
 
-    public double getCuotaAnual() { return cuotaAnual; }
-    public void setCuotaAnual(double cuotaAnual) { this.cuotaAnual = cuotaAnual; }
-
-    public double getDescuento() { return descuento; }
-    public void setDescuento(double descuento) { this.descuento = descuento; }
+    public Double getCuotaAnual() { return cuotaAnual; }
+    public void setCuotaAnual(Double cuotaAnual) { this.cuotaAnual = cuotaAnual; }
+    public Double getDescuento() { return descuento; }
+    public void setDescuento(Double descuento) { this.descuento = descuento; }
 
     @Override
     public double calcularDescuentoEnvio() {
-        return descuento;
+        return descuento == null ? 0.0 : descuento;
     }
 
     @Override

@@ -1,14 +1,44 @@
 package models;
 
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "pedido_articulo")
 public class PedidoLinea {
-    private String codigoArticulo;
+
+    @EmbeddedId
+    private PedidoLineaId id = new PedidoLineaId();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @MapsId("idPedido")
+    @JoinColumn(name = "id_pedido")
+    private Pedido pedido;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @MapsId("codigoArticulo")
+    @JoinColumn(name = "codigo_articulo")
+    private Articulo articulo;
+
     private int cantidad;
 
+    public PedidoLinea() {}
+
     public PedidoLinea(String codigoArticulo, int cantidad) {
-        this.codigoArticulo = codigoArticulo;
+        this.id = new PedidoLineaId(null, codigoArticulo);
         this.cantidad = cantidad;
     }
 
-    public String getCodigoArticulo() { return codigoArticulo; }
+    public PedidoLineaId getId() { return id; }
     public int getCantidad() { return cantidad; }
+    public String getCodigoArticulo() { return id.getCodigoArticulo(); }
+    public Articulo getArticulo() { return articulo; }
+
+    public void setPedido(Pedido pedido) {
+        this.pedido = pedido;
+        if (pedido != null) this.id = new PedidoLineaId(pedido.getNumero(), this.id.getCodigoArticulo());
+    }
+
+    public void setArticulo(Articulo articulo) {
+        this.articulo = articulo;
+    }
 }
