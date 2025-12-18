@@ -6,15 +6,13 @@ import jakarta.persistence.TypedQuery;
 import onlinestore.dao.ClienteDAO;
 import onlinestore.factory.JPAUtil;
 import onlinestore.models.Cliente;
-import onlinestore.models.ClienteEstandar;
-import onlinestore.models.ClientePremium;
-
+import java.math.BigDecimal;
 import java.util.List;
 
 public class ClienteDAOImpl implements ClienteDAO {
 
     @Override
-    public void insertar(Cliente cliente) throws Exception {
+    public int insertar(Cliente cliente) throws Exception {
         EntityManager em = JPAUtil.getEntityManager();
         EntityTransaction tx = em.getTransaction();
 
@@ -22,8 +20,11 @@ public class ClienteDAOImpl implements ClienteDAO {
             tx.begin();
             em.persist(cliente);
             tx.commit();
+            return cliente.getId(); // devuelve el id generado
         } catch (Exception e) {
-            if (tx.isActive()) tx.rollback();
+            if (tx.isActive()) {
+                tx.rollback();
+            }
             throw e;
         } finally {
             em.close();
@@ -33,12 +34,12 @@ public class ClienteDAOImpl implements ClienteDAO {
     @Override
     public Cliente buscarPorEmail(String email) throws Exception {
         EntityManager em = JPAUtil.getEntityManager();
-
         try {
-            TypedQuery<Cliente> q =
-                    em.createQuery("SELECT c FROM Cliente c WHERE c.email = :email", Cliente.class);
+            TypedQuery<Cliente> q = em.createQuery(
+                    "SELECT c FROM Cliente c WHERE c.email = :email",
+                    Cliente.class
+            );
             q.setParameter("email", email);
-
             return q.getResultStream().findFirst().orElse(null);
         } finally {
             em.close();
@@ -49,8 +50,10 @@ public class ClienteDAOImpl implements ClienteDAO {
     public List<Cliente> listarTodos() throws Exception {
         EntityManager em = JPAUtil.getEntityManager();
         try {
-            return em.createQuery("SELECT c FROM Cliente c", Cliente.class)
-                     .getResultList();
+            return em.createQuery(
+                    "SELECT c FROM Cliente c",
+                    Cliente.class
+            ).getResultList();
         } finally {
             em.close();
         }
@@ -66,7 +69,9 @@ public class ClienteDAOImpl implements ClienteDAO {
             em.merge(cliente);
             tx.commit();
         } catch (Exception e) {
-            if (tx.isActive()) tx.rollback();
+            if (tx.isActive()) {
+                tx.rollback();
+            }
             throw e;
         } finally {
             em.close();
@@ -81,12 +86,14 @@ public class ClienteDAOImpl implements ClienteDAO {
         try {
             tx.begin();
             Cliente c = em.find(Cliente.class, id);
-
-            if (c != null) em.remove(c);
-
+            if (c != null) {
+                em.remove(c);
+            }
             tx.commit();
         } catch (Exception e) {
-            if (tx.isActive()) tx.rollback();
+            if (tx.isActive()) {
+                tx.rollback();
+            }
             throw e;
         } finally {
             em.close();
@@ -117,5 +124,15 @@ public class ClienteDAOImpl implements ClienteDAO {
         } finally {
             em.close();
         }
+    }
+
+    @Override
+    public int insertarConSP(Cliente cliente,
+                             BigDecimal cuotaAnual,
+                             BigDecimal descuento) throws Exception {
+        // En JPA no se usan procedimientos almacenados
+        // Se implementa para cumplir la interfaz
+        throw new UnsupportedOperationException(
+                "insertarConSP no está soportado en la implementación JPA");
     }
 }

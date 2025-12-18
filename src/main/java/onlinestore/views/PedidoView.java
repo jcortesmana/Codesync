@@ -1,24 +1,31 @@
 package onlinestore.views;
 
-import onlinestore.models.Pedido;
-
-import java.util.Collection;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
 
 public class PedidoView {
 
-    public void mostrarPedidoCreado(Pedido pedido) {
-        System.out.println("🧾 Pedido creado: " + pedido);
+    private Stage stage;
+
+    public PedidoView(Stage stage) {
+        this.stage = stage;
     }
 
-    public void mostrarPedidos(Collection<Pedido> pedidos) {
-        if (pedidos == null || pedidos.isEmpty()) {
-            System.out.println("No hay pedidos que mostrar.");
-            return;
-        }
-        pedidos.forEach(System.out::println);
-    }
+    public void mostrar() {
+        Label label = new Label("Pantalla de Pedidos");
 
-    public void mostrarError(String mensaje) {
-        System.err.println("⚠️ Pedido - " + mensaje);
+        Button volver = new Button("Volver");
+        volver.setOnAction(e -> {
+            TiendaView tiendaView = new TiendaView(stage);
+            tiendaView.mostrar();
+        });
+
+        VBox layout = new VBox(15, label, volver);
+        layout.setStyle("-fx-padding: 20; -fx-alignment: center;");
+
+        stage.setScene(new Scene(layout, 400, 300));
     }
-} 
+}

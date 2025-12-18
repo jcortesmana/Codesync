@@ -17,6 +17,7 @@ public class Pedido {
     @Column(name = "fecha")
     private LocalDate fecha;
 
+    @SuppressWarnings("unused")
     private int cantidad;
     private boolean enviado;
 

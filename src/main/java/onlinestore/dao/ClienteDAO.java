@@ -1,11 +1,13 @@
 package onlinestore.dao;
 
 import onlinestore.models.Cliente;
+
+import java.math.BigDecimal;
 import java.util.List;
 
 public interface ClienteDAO {
 
-    void insertar(Cliente cliente) throws Exception;
+    int insertar(Cliente cliente) throws Exception;
 
     Cliente buscarPorEmail(String email) throws Exception;
 
@@ -18,4 +20,6 @@ public interface ClienteDAO {
     List<Cliente> listarEstandar() throws Exception;
 
     List<Cliente> listarPremium() throws Exception;
+
+    int insertarConSP(Cliente cliente, BigDecimal cuotaAnual, BigDecimal descuento) throws Exception;
 }
